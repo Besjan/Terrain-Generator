@@ -18,7 +18,7 @@
         static Transform[] tiles;
         static string[] tileNames;
 
-        static float tileSize = 2000;
+        static float tileMeasure = 1000; // 1000m
 
         static int centreTileLon = 392;
         static int centreTileLat = 5820;
@@ -60,10 +60,10 @@
 
             var vertices = new Vector3[4]
             {
-            new Vector3(0, 0, 0),
-            new Vector3(tileSize, 0, 0),
-            new Vector3(0, 0, tileSize),
-            new Vector3(tileSize, 0, tileSize)
+            new Vector3(-tileMeasure, 0, -tileMeasure),
+            new Vector3(tileMeasure, 0, -tileMeasure),
+            new Vector3(-tileMeasure, 0, tileMeasure),
+            new Vector3(tileMeasure, 0, tileMeasure)
             };
             mesh.vertices = vertices;
 
@@ -105,7 +105,7 @@
             var lon = System.Convert.ToInt32(coordinates[0]);
             var lat = System.Convert.ToInt32(coordinates[1]);
 
-            tile.position = new Vector3(lon - centreTileLon, 0, lat - centreTileLat) * 1000; // 1000m
+            tile.position = new Vector3(lon - centreTileLon, 0, lat - centreTileLat) * tileMeasure;
         }
     }
 }
