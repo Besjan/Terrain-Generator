@@ -11,39 +11,49 @@
         #region Properties
         static string dataPath = "Assets/StreamingAssets/Data";
 
-        static Material material;
-        static Transform terrain;
+        static Transform tileContainer;
 
-        static float tileWidth = 2000;
-        static float tileHeight = 2000;
+        static Material tileMaterial;
+
+        static Transform[] tiles;
+        static string[] tileNames;
+
+        static float tileSize = 2000;
+
+        static int centreTileLon = 392;
+        static int centreTileLat = 5820;
         #endregion
 
         static string[] Initialize(string terrainName)
         {
-            material = new Material(Shader.Find("Diffuse"));
+            tileContainer = new GameObject(terrainName).transform;
 
-            terrain = new GameObject(terrainName).transform;
+            tileMaterial = new Material(Shader.Find("Diffuse"));
 
-            return Directory.GetFiles(dataPath, "*.txt");
+            tileNames = Directory.GetFiles(dataPath, "*.txt");
+
+            tiles = new Transform[tileNames.Length];
+
+            return tileNames;
         }
 
         [MenuItem("Cuku/Generate Terrain From DGM (1m grid)")]
         static void GenerateTerrainFromDGM1System()
         {
-            var tiles = Initialize("Terrain GDM (1m grid)");
+            Initialize("Terrain GDM (1m grid)");
 
-            for (int i = 0; i < tiles.Length; i++)
+            for (int i = 0; i < tileNames.Length; i++)
             {
-                CreateTile(terrain, Path.GetFileNameWithoutExtension(tiles[i]));
+                tiles[i] = CreateTile(Path.GetFileNameWithoutExtension(tileNames[i]));
             }
         }
 
-        static void CreateTile(Transform parent, string name)
+        static Transform CreateTile(string tileName)
         {
-            var tile = new GameObject(name, new System.Type[] { typeof(MeshFilter), typeof(MeshRenderer) }).transform;
-            tile.SetParent(parent);
+            var tile = new GameObject(tileName, new System.Type[] { typeof(MeshFilter), typeof(MeshRenderer) }).transform;
+            tile.SetParent(tileContainer);
 
-            tile.GetComponent<MeshRenderer>().material = material;
+            tile.GetComponent<MeshRenderer>().material = tileMaterial;
 
             var mesh = new Mesh();
             tile.GetComponent<MeshFilter>().mesh = mesh;
@@ -51,9 +61,9 @@
             var vertices = new Vector3[4]
             {
             new Vector3(0, 0, 0),
-            new Vector3(tileWidth, 0, 0),
-            new Vector3(0, 0, tileHeight),
-            new Vector3(tileWidth, 0, tileHeight)
+            new Vector3(tileSize, 0, 0),
+            new Vector3(0, 0, tileSize),
+            new Vector3(tileSize, 0, tileSize)
             };
             mesh.vertices = vertices;
 
@@ -83,6 +93,19 @@
             new Vector2(1, 1)
             };
             mesh.uv = uv;
+
+            PositionTile(tile, tileName);
+
+            return tile;
+        }
+
+        static void PositionTile(Transform tile, string tileName)
+        {
+            var coordinates = tileName.Split(new char[] { '_' });
+            var lon = System.Convert.ToInt32(coordinates[0]);
+            var lat = System.Convert.ToInt32(coordinates[1]);
+
+            tile.position = new Vector3(lon - centreTileLon, 0, lat - centreTileLat) * 1000; // 1000m
         }
     }
 }
