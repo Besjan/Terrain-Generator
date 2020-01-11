@@ -13,11 +13,9 @@
         #region Properties
         static string dataPath = "Assets/StreamingAssets/Test";
 
-        static Transform tileContainer;
+        static Transform terrain;
 
         static Material tileMaterial;
-
-        static Transform[] tiles;
 
         static int patchSize = 2000; // 2km
 
@@ -30,13 +28,11 @@
 
         static string[] Initialize(string terrainName)
         {
-            tileContainer = new GameObject(terrainName).transform;
+            terrain = new GameObject(terrainName).transform;
 
             tileMaterial = new Material(Shader.Find("Diffuse"));
 
             var dataPaths = Directory.GetFiles(dataPath, "*.txt");
-
-            tiles = new Transform[dataPaths.Length];
 
             return dataPaths;
         }
@@ -50,11 +46,13 @@
             {
                 var tiles = SplitPatchToTiles(dataPaths[dp]);
 
+                var patchGO = new GameObject(Path.GetFileNameWithoutExtension(dataPaths[dp])).transform;
+                patchGO.SetParent(terrain);
+
                 for (int t = 0; t < tiles.Length; t++)
                 {
-                    CreateTile(tiles[t]);
+                    CreateTile(tiles[t], patchGO);
                 }
-                //tiles[i] = CreateTile(dataPaths[i]);
             }
         }
 
@@ -108,20 +106,20 @@
             for (int vt = 0; vt < tileCount; vt++)
             {
                 var tileLat = lat + vt * tileCoordinateStep;
-                var startRow = vt * tileResolution;
+                var startCLm = vt * tileResolution - Mathf.Clamp(vt, 0, 1);
 
                 for (int ht = 0; ht < tileCount; ht++)
                 {
                     var tileLon = lon + ht * tileCoordinateStep;
                     var heights = new List<float>();
 
-                    for (int r = startRow; r < startRow + tileResolution; r++)
+                    for (int clm = startCLm; clm < startCLm + tileResolution; clm++)
                     {
-                        var startPoint = ht * tileResolution;
+                        var startRow = ht * tileResolution - Mathf.Clamp(ht, 0, 1);
 
-                        for (int p = startPoint; p < startPoint + tileResolution; p++)
+                        for (int row = startRow; row < startRow + tileResolution; row++)
                         {
-                            heights.Add(rows[p][r].Z);
+                            heights.Add(rows[row][clm].Z);
                         }
                     }
 
@@ -139,24 +137,27 @@
             return tiles.ToArray();
         }
 
-        static Transform CreateTile(Tile tile)
+        static Transform CreateTile(Tile tile, Transform patchGO)
         {
             // Create game object
             var tileName = tile.Lon + "_" + tile.Lat;
 
-            var tileObj = new GameObject(tileName, new Type[] { typeof(MeshFilter), typeof(MeshRenderer) }).transform;
-            tileObj.SetParent(tileContainer);
+            var tileGO = new GameObject(tileName, new Type[] { typeof(MeshFilter), typeof(MeshRenderer) }).transform;
+            tileGO.SetParent(patchGO);
 
             // Apply default material
-            tileObj.GetComponent<MeshRenderer>().material = tileMaterial;
+            tileGO.GetComponent<MeshRenderer>().material = tileMaterial;
 
             // Create mesh
-            CreateMesh(tileObj.GetComponent<MeshFilter>(), tile.Heights);
+            CreateMesh(tileGO.GetComponent<MeshFilter>(), tile.Heights);
 
             // Position relative to centre tile
-            tileObj.position = new Vector3(tile.Lon - centreTileLon, 0, tile.Lat - centreTileLat) * 1000;
+            var shift = patchSize / 2 - tileSize / 2;
+            var posX = (tile.Lon - centreTileLon) * 1000 - shift;
+            var posZ = (tile.Lat - centreTileLat) * 1000 - shift;
+            tileGO.position = new Vector3(Mathf.Round(posX), 0, Mathf.Round(posZ));
 
-            return tileObj;
+            return tileGO;
         }
 
         static void CreateMesh(MeshFilter filter, float[] heights)
@@ -221,8 +222,8 @@
             mesh.uv = uvs;
             mesh.triangles = triangles;
 
-            //mesh.RecalculateBounds();
-            //mesh.Optimize();
+            mesh.RecalculateBounds();
+            mesh.Optimize();
         }
     }
 
