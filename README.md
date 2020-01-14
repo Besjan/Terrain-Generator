@@ -1,2 +1,3 @@
 # Terrain-Generator
-Generate Unity Terrain from DGM data.
+- Generate Terrain from DEM / DGM (1m grid)
+- Testing with Berlin data provided by ATKIS®
