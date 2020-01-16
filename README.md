@@ -1,2 +1,2 @@
-# Terrain-Generator
-Generate Unity Terrain from DGM data.
+# Features
+- Generat Unity Terrain from DEM / DGM (1m grid) data
