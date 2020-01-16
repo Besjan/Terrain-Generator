@@ -14,13 +14,17 @@
         static string dataPath = "Assets/StreamingAssets/Test";
 
         static Transform terrain;
-
         static Material tileMaterial;
 
-        static int patchSize = 2000; // 2km
+        static Dictionary<Coordinates, Point[]> rowPatchMissingPoints;
+        static Dictionary<Coordinates, Point[]> columnPatchMissingPoints;
+        static Dictionary<Coordinates, Point> anglePatchMissingPoints;
 
-        static int tileSize = 200;
-        static int tileResolution = 200;
+        static int patchSize = 2000; // 2km
+        static int patchStep;
+
+        static float tileSize = 200f;
+        static int tileResolution = 201;
 
         static int centreTileLon = 392;
         static int centreTileLat = 5820;
@@ -32,6 +36,12 @@
 
             tileMaterial = new Material(Shader.Find("Diffuse"));
 
+            rowPatchMissingPoints = new Dictionary<Coordinates, Point[]>();
+            columnPatchMissingPoints = new Dictionary<Coordinates, Point[]>();
+            anglePatchMissingPoints = new Dictionary<Coordinates, Point>();
+
+            patchStep = patchSize / 1000;
+
             var dataPaths = Directory.GetFiles(dataPath, "*.txt");
 
             return dataPaths;
@@ -40,30 +50,276 @@
         [MenuItem("Cuku/Generate Terrain From DGM (1m grid)")]
         static void GenerateTerrainFromDGM1System()
         {
-            var dataPaths = Initialize("Terrain DGM (1m grid)");
+            var filePaths = Initialize("Terrain DGM (1m grid)");
 
-            for (int dp = 0; dp < dataPaths.Length; dp++)
+            // Extract missing points from patches
+            for (int fp = 0; fp < filePaths.Length; fp++)
             {
-                var tiles = SplitPatchToTiles(dataPaths[dp]);
+                ExtractPatchMissingPoints(filePaths[fp]);
+            }
 
-                var patchGO = new GameObject(Path.GetFileNameWithoutExtension(dataPaths[dp])).transform;
-                patchGO.SetParent(terrain);
-
-                for (int t = 0; t < tiles.Length; t++)
-                {
-                    CreateTile(tiles[t], patchGO);
-                }
+            // Split patches to tiles
+            for (int fp = 0; fp < filePaths.Length; fp++)
+            {
+                SplitPatchToTiles(filePaths[fp]);
             }
         }
 
-        static Tile[] SplitPatchToTiles(string filePath)
+        static Coordinates GetCoordinates(string filePath)
         {
-            // Get coordinates
             var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
-            var lon = float.Parse(coordinates[0]);
-            var lat = float.Parse(coordinates[1]);
 
-            // Get points
+            return new Coordinates()
+            {
+                Lon = float.Parse(coordinates[0]),
+                Lat = float.Parse(coordinates[1])
+            };
+        }
+
+        #region Tiles
+        static void SplitPatchToTiles(string filePath)
+        {
+            var coordinates = GetCoordinates(filePath);
+
+            var allPoints = GetAllPoints(filePath, coordinates);
+            if (allPoints == null) return;
+
+            // Order points in patch rows
+            var patchRows = allPoints.OrderBy(point => point.X)
+                .ThenBy(point => point.Y)
+                .Select((x, i) => new { Index = i, Value = x })
+                .GroupBy(x => x.Index / 2001)
+                .Select(x => x.Select(v => v.Value).ToArray())
+                .ToArray();
+
+            Debug.Log(patchRows.Length + " | " + patchRows[0].Length);
+
+            Debug.Log(string.Format("{0} 0 > {1} | 1 > {2} | 2 > {3} | 3 > {4}", coordinates,
+                patchRows.First().First().X + ", " + patchRows.First().First().Y + ", " + patchRows.First().First().Z,
+                patchRows.First().Last().X + ", " + patchRows.First().Last().Y + ", " + patchRows.First().Last().Z,
+                patchRows.Last().First().X + ", " + patchRows.Last().First().Y + ", " + patchRows.Last().First().Z,
+                patchRows.Last().Last().X + ", " + patchRows.Last().Last().Y + ", " + patchRows.Last().Last().Z));
+
+            // Split points in tiles
+            var tiles = new List<Tile>();
+            var tileCount = patchSize / tileSize;
+            var tileCoordinateStep = patchStep * 1.0f / tileCount;
+
+            // Loop vertical tiles
+            for (int vt = 0; vt < tileCount; vt++)
+            {
+                var tileLat = coordinates.Lat + vt * tileCoordinateStep;
+                var startCLm = vt * (tileResolution - 1);
+
+                // Loop horizontal tiles
+                for (int ht = 0; ht < tileCount; ht++)
+                {
+                    var tileLon = coordinates.Lon + ht * tileCoordinateStep;
+                    var heights = new List<float>();
+
+                    // Loop tile columns
+                    for (int clm = startCLm; clm < startCLm + tileResolution; clm++)
+                    {
+                        var startRow = ht * (tileResolution - 1);
+
+                        // Loop tile rows
+                        for (int row = startRow; row < startRow + tileResolution; row++)
+                        {
+                            if (patchRows.Length <= row)
+                            {
+                                Debug.Log(row);
+                                return;
+                            }
+                            if (patchRows[row].Length <= clm)
+                            {
+                                Debug.Log(row + " " + clm);
+                                return;
+                            }
+                            heights.Add(patchRows[row][clm].Z);
+                        }
+                    }
+
+                    // Add tile to list
+                    var tile = new Tile()
+                    {
+                        Coordinates = new Coordinates()
+                        {
+                            Lon = tileLon,
+                            Lat = tileLat
+                        },
+                        HorizontalResolution = tileResolution,
+                        VerticalResolution = tileResolution,
+                        Heights = heights.ToArray()
+                    };
+
+                    tiles.Add(tile);
+                }
+            }
+
+            // Create patch gameo object
+            var patch = new GameObject(Path.GetFileNameWithoutExtension(filePath)).transform;
+            patch.SetParent(terrain);
+
+            // Create tiles
+            for (int t = 0; t < tiles.Count; t++)
+            {
+                CreateTile(patch, tiles[t]);
+            }
+        }
+
+        static Transform CreateTile(Transform patchGO, Tile tile)
+        {
+            // Create game object
+            var tileName = tile.Coordinates.Lon + "_" + tile.Coordinates.Lat;
+
+            var tileGO = new GameObject(tileName, new Type[] { typeof(MeshFilter), typeof(MeshRenderer) }).transform;
+            tileGO.SetParent(patchGO);
+
+            // Apply default material
+            tileGO.GetComponent<MeshRenderer>().material = tileMaterial;
+
+            // Create mesh
+            CreateTileMesh(tileGO.GetComponent<MeshFilter>(), tile);
+
+            // Position relative to centre tile
+            //var shift = patchSize / 2 - tileSize / 2;
+            //var posX = (tile.Lon - centreTileLon) * 1000 - shift;
+            //var posZ = (tile.Lat - centreTileLat) * 1000 - shift;
+            var posX = (tile.Coordinates.Lon - centreTileLon) * 1000;
+            var posZ = (tile.Coordinates.Lat - centreTileLat) * 1000;
+            tileGO.position = new Vector3(Mathf.Round(posX), 0, Mathf.Round(posZ));
+
+            return tileGO;
+        }
+
+        static void CreateTileMesh(MeshFilter filter, Tile tile)
+        {
+            var mesh = new Mesh();
+            filter.mesh = mesh;
+
+            var hRes = tile.HorizontalResolution;
+            var vRes = tile.VerticalResolution;
+
+            Debug.Log(hRes + " " + vRes);
+
+            var length = vRes - 1;
+            var width = hRes - 1;
+
+            #region Vertices		
+            Vector3[] vertices = new Vector3[hRes * vRes];
+            Debug.Log(vertices.Length);
+            // Loop columns
+            for (int clm = 0; clm < hRes; clm++)
+            {
+                float vPos = ((float)clm / (hRes - 1)) * length;
+                // Loop rows
+                for (int row = 0; row < vRes; row++)
+                {
+                    float hPos = ((float)row / (vRes - 1)) * width;
+                    var id = row + clm * vRes;
+                    vertices[id] = new Vector3(hPos, tile.Heights[id], vPos);
+                }
+            }
+            #endregion
+
+            #region Normals
+            Vector3[] normales = new Vector3[vertices.Length];
+            for (int n = 0; n < normales.Length; n++)
+            {
+                normales[n] = Vector3.up;
+            }
+            #endregion
+
+            #region UVs		
+            Vector2[] uvs = new Vector2[vertices.Length];
+            for (int v = 0; v < hRes; v++)
+            {
+                for (int u = 0; u < vRes; u++)
+                {
+                    uvs[u + v * vRes] = new Vector2((float)u / (vRes - 1), (float)v / (hRes - 1));
+                }
+            }
+            #endregion
+
+            #region Triangles
+            int nbFaces = (vRes - 1) * (hRes - 1);
+            int[] triangles = new int[nbFaces * 6];
+            int t = 0;
+            for (int face = 0; face < nbFaces; face++)
+            {
+                // Retrieve lower left corner from face ind
+                int i = face % (vRes - 1) + (face / (hRes - 1) * vRes);
+
+                triangles[t++] = i + vRes;
+                triangles[t++] = i + 1;
+                triangles[t++] = i;
+
+                triangles[t++] = i + vRes;
+                triangles[t++] = i + vRes + 1;
+                triangles[t++] = i + 1;
+            }
+            #endregion
+
+            mesh.vertices = vertices;
+            mesh.normals = normales;
+            mesh.uv = uvs;
+            mesh.triangles = triangles;
+
+            //mesh.RecalculateBounds();
+            //mesh.Optimize();
+        }
+        #endregion
+
+        #region Points
+        /// <summary>
+        /// Missing points for each tile are:
+        /// first row of top tile,
+        /// first column of right tile,
+        /// first point of top right tile.
+        /// </summary>
+        /// <param name="filePath"></param>
+        static void ExtractPatchMissingPoints(string filePath)
+        {
+            var coordinates = GetCoordinates(filePath);
+            var points = GetPatchPoints(filePath);
+
+            rowPatchMissingPoints.Add(coordinates, points.Where(p => p.Y == coordinates.Lat * 1000).ToArray());
+            columnPatchMissingPoints.Add(coordinates, points.Where(p => p.X == coordinates.Lon * 1000).ToArray());
+            anglePatchMissingPoints.Add(coordinates, points.FirstOrDefault(p => p.X == coordinates.Lon * 1000 && p.Y == coordinates.Lat * 1000));
+        }
+
+        static Point[] GetAllPoints(string filePath, Coordinates coordinates)
+        {
+            // Get file points
+            var points = GetPatchPoints(filePath);
+
+            if (points.Length != patchSize * patchSize)
+            {
+                Debug.LogWarning(string.Format("{0}_{1} has {2} points!", coordinates.Lon, coordinates.Lat, points.Length));
+                return null;
+            }
+
+            // Get missing points
+            var missingPoints = GetMissingPoints(coordinates);
+
+            //if (missingPoints.Length != 0 || missingPoints.Length != patchSize || missingPoints.Length != 2 * patchSize - 1)
+            if (missingPoints.Length == 0 || missingPoints.Length == patchSize)
+            {
+                Debug.LogWarning(coordinates + " has " + missingPoints.Length + " points!");
+                return null;
+            }
+
+            var allPoints = new List<Point>();
+            allPoints.AddRange(points);
+            allPoints.AddRange(missingPoints);
+
+            Debug.Log(allPoints.Count);
+
+            return allPoints.ToArray();
+        }
+
+        static Point[] GetPatchPoints(string filePath)
+        {
             List<Point> points = new List<Point>();
             using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (BufferedStream bs = new BufferedStream(fs))
@@ -82,155 +338,55 @@
                 }
             }
 
-            if (points.Count != patchSize * patchSize)
-            {
-                Debug.LogWarning(coordinates + " has " + points.Count + " points!");
-                return null;
-            }
-
-            // Order points
-            var rows = points.OrderBy(point => point.X)
-                .ThenBy(point => point.Y)
-                .Select((x, i) => new { Index = i, Value = x })
-                .GroupBy(x => x.Index / patchSize)
-                .Select(x => x.Select(v => v.Value).ToArray())
-                .ToArray();
-
-            Debug.Log(rows.Length + " rows");
-
-            // Split points in tiles
-            var tiles = new List<Tile>();
-            var tileCount = patchSize / tileResolution;
-            var tileCoordinateStep = patchSize * 1.0f / (1000 * tileCount);
-
-            for (int vt = 0; vt < tileCount; vt++)
-            {
-                var tileLat = lat + vt * tileCoordinateStep;
-                var startCLm = vt * tileResolution - Mathf.Clamp(vt, 0, 1);
-
-                for (int ht = 0; ht < tileCount; ht++)
-                {
-                    var tileLon = lon + ht * tileCoordinateStep;
-                    var heights = new List<float>();
-
-                    for (int clm = startCLm; clm < startCLm + tileResolution; clm++)
-                    {
-                        var startRow = ht * tileResolution - Mathf.Clamp(ht, 0, 1);
-
-                        for (int row = startRow; row < startRow + tileResolution; row++)
-                        {
-                            heights.Add(rows[row][clm].Z);
-                        }
-                    }
-
-                    var tile = new Tile()
-                    {
-                        Lon = tileLon,
-                        Lat = tileLat,
-                        Heights = heights.ToArray()
-                    };
-
-                    tiles.Add(tile);
-                }
-            }
-
-            return tiles.ToArray();
+            return points.ToArray();
         }
 
-        static Transform CreateTile(Tile tile, Transform patchGO)
+        static Point[] GetMissingPoints(Coordinates coordinates)
         {
-            // Create game object
-            var tileName = tile.Lon + "_" + tile.Lat;
+            List<Point> missingPoints = new List<Point>();
 
-            var tileGO = new GameObject(tileName, new Type[] { typeof(MeshFilter), typeof(MeshRenderer) }).transform;
-            tileGO.SetParent(patchGO);
+            var rowMissingPoints = rowPatchMissingPoints
+                .FirstOrDefault(mp => mp.Key.Lon == coordinates.Lon && mp.Key.Lat == coordinates.Lat + patchStep);
+            if (!rowMissingPoints.Equals(default(KeyValuePair<Coordinates, Point[]>)))
+            {
+                var points = rowMissingPoints.Value.Where(p => rowMissingPoints.Key.Lat * 1000 == p.Y);
+                missingPoints.AddRange(points);
+                Debug.Log("Top: " + rowMissingPoints.Key.Lon + "_" + rowMissingPoints.Key.Lat + " " + points.Count());
+                rowPatchMissingPoints.Remove(rowMissingPoints.Key);
+            }
 
-            // Apply default material
-            tileGO.GetComponent<MeshRenderer>().material = tileMaterial;
+            var columnMissingPoints = columnPatchMissingPoints
+                .FirstOrDefault(mp => mp.Key.Lon == coordinates.Lon + patchStep && mp.Key.Lat == coordinates.Lat);
+            if (!columnMissingPoints.Equals(default(KeyValuePair<Coordinates, Point[]>)))
+            {
+                var points = columnMissingPoints.Value.Where(p => columnMissingPoints.Key.Lon * 1000 == p.X);
+                missingPoints.AddRange(points);
+                Debug.Log("Right: " + columnMissingPoints.Key.Lon + "_" + columnMissingPoints.Key.Lat + " " + points.Count());
+                columnPatchMissingPoints.Remove(columnMissingPoints.Key);
+            }
 
-            // Create mesh
-            CreateMesh(tileGO.GetComponent<MeshFilter>(), tile.Heights);
+            var angleMissingPoint = anglePatchMissingPoints
+                .FirstOrDefault(mp => mp.Key.Lon == coordinates.Lon + patchStep && mp.Key.Lat == coordinates.Lat + patchStep);
+            if (!angleMissingPoint.Equals(default(KeyValuePair<Coordinates, Point[]>)))
+            {
+                var point = angleMissingPoint.Value;
+                missingPoints.Add(point);
+                Debug.Log("TopRight: " + angleMissingPoint.Key.Lon + "_" + angleMissingPoint.Key.Lat);
+                anglePatchMissingPoints.Remove(angleMissingPoint.Key);
+            }
 
-            // Position relative to centre tile
-            var shift = patchSize / 2 - tileSize / 2;
-            var posX = (tile.Lon - centreTileLon) * 1000 - shift;
-            var posZ = (tile.Lat - centreTileLat) * 1000 - shift;
-            tileGO.position = new Vector3(Mathf.Round(posX), 0, Mathf.Round(posZ));
+            Debug.Log(missingPoints.Count);
 
-            return tileGO;
+            return missingPoints.ToArray();
         }
-
-        static void CreateMesh(MeshFilter filter, float[] heights)
-        {
-            var mesh = new Mesh();
-            filter.mesh = mesh;
-
-            #region Vertices		
-            Vector3[] vertices = new Vector3[tileResolution * tileResolution];
-            for (int z = 0; z < tileResolution; z++)
-            {
-                float zPos = ((float)z / (tileResolution - 1) - 0.5f) * tileSize;
-                for (int x = 0; x < tileResolution; x++)
-                {
-                    float xPos = ((float)x / (tileResolution - 1) - 0.5f) * tileSize;
-                    var id = x + z * tileResolution;
-                    vertices[id] = new Vector3(xPos, heights[id], zPos);
-                }
-            }
-            #endregion
-
-            #region Normals
-            Vector3[] normales = new Vector3[vertices.Length];
-            for (int n = 0; n < normales.Length; n++)
-            {
-                normales[n] = Vector3.up;
-            }
-            #endregion
-
-            #region UVs		
-            Vector2[] uvs = new Vector2[vertices.Length];
-            for (int v = 0; v < tileResolution; v++)
-            {
-                for (int u = 0; u < tileResolution; u++)
-                {
-                    uvs[u + v * tileResolution] = new Vector2((float)u / (tileResolution - 1), (float)v / (tileResolution - 1));
-                }
-            }
-            #endregion
-
-            #region Triangles
-            int nbFaces = (tileResolution - 1) * (tileResolution - 1);
-            int[] triangles = new int[nbFaces * 6];
-            int t = 0;
-            for (int face = 0; face < nbFaces; face++)
-            {
-                // Retrieve lower left corner from face ind
-                int i = face % (tileResolution - 1) + (face / (tileResolution - 1) * tileResolution);
-
-                triangles[t++] = i + tileResolution;
-                triangles[t++] = i + 1;
-                triangles[t++] = i;
-
-                triangles[t++] = i + tileResolution;
-                triangles[t++] = i + tileResolution + 1;
-                triangles[t++] = i + 1;
-            }
-            #endregion
-
-            mesh.vertices = vertices;
-            mesh.normals = normales;
-            mesh.uv = uvs;
-            mesh.triangles = triangles;
-
-            mesh.RecalculateBounds();
-            mesh.Optimize();
-        }
+        #endregion
     }
 
     struct Tile
     {
-        public float Lon;
-        public float Lat;
+        public Coordinates Coordinates;
+        public int HorizontalResolution;
+        public int VerticalResolution;
         // Order of points is: Left -> Right and Bottom -> Up
         public float[] Heights;
     }
@@ -240,5 +396,11 @@
         public float X;
         public float Y;
         public float Z;
+    }
+
+    struct Coordinates
+    {
+        public float Lon;
+        public float Lat;
     }
 }
