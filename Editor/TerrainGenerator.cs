@@ -12,6 +12,8 @@
         #region Properties
         static int TileResolution = 201;
 
+        static List<Patch> TilesWithMissingPoints;
+
         static string dataPath = "Assets/StreamingAssets/Test";
 
         static Transform terrain;
@@ -32,11 +34,7 @@
         {
             terrain = new GameObject(terrainName).transform;
 
-            tileMaterial = new Material(Shader.Find("Diffuse"));
-
-            rowPatchMissingPoints = new Dictionary<Coordinates, Point[]>();
-            columnPatchMissingPoints = new Dictionary<Coordinates, Point[]>();
-            anglePatchMissingPoints = new Dictionary<Coordinates, Point>();
+            TilesWithMissingPoints = new List<Patch>();
 
             patchStep = patchSize / 1000;
 
@@ -161,7 +159,7 @@
         }
 
         #region Tile
-        static Transform CreateTile(Transform patchGO, Tile tile)
+        static Transform CreateTile(Transform patchGO, OldTile tile)
         {
             // Create game object
             var tileName = tile.Coordinates.Lon + "_" + tile.Coordinates.Lat;
@@ -214,7 +212,7 @@
                 patchRows.Last().Last().X + ", " + patchRows.Last().Last().Y + ", " + patchRows.Last().Last().Z));
 
             // Split points in tiles
-            var tiles = new List<Tile>();
+            var tiles = new List<OldTile>();
             var tileCount = patchSize / TileResolution;
             var tileCoordinateStep = patchStep * 1.0f / tileCount;
 
@@ -238,7 +236,7 @@
                     if (vt == tileCount - 1 && !hasMissingRow) vRes--;
 
                     // Create tile
-                    var tile = new Tile()
+                    var tile = new OldTile()
                     {
                         Coordinates = new Coordinates()
                         {
@@ -287,7 +285,7 @@
             }
         }
 
-        static void CreateTileMesh(MeshFilter filter, Tile tile)
+        static void CreateTileMesh(MeshFilter filter, OldTile tile)
         {
             var mesh = new Mesh();
             filter.mesh = mesh;
@@ -466,7 +464,27 @@
         #endregion
     }
 
+    struct Patch
+    {
+        public int Longitude;
+        public int Latitude;
+        public Tile Tile;
+    }
+
     struct Tile
+    {
+        public int Longitude;
+        public int Latitude;
+        public Mesh Mesh;
+    }
+
+    struct Coordinates
+    {
+        public float Lon;
+        public float Lat;
+    }
+
+    struct OldTile
     {
         public Coordinates Coordinates;
         public int HorizontalResolution;
@@ -480,11 +498,5 @@
         public float X;
         public float Y;
         public float Z;
-    }
-
-    struct Coordinates
-    {
-        public float Lon;
-        public float Lat;
     }
 }
