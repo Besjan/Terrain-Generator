@@ -10,35 +10,32 @@
     public class TerrainGenerator
     {
         #region Properties
-        static int TileResolution = 201;
+        static string DataPath = "Assets/StreamingAssets/Test";
+
+        static Transform Terrain;
 
         static List<Patch> TilesWithMissingPoints;
 
-        static string dataPath = "Assets/StreamingAssets/Test";
+        static int TileResolution = 201;
+        static int TilesPerPatch = 10;
 
-        static Transform terrain;
-        static Material tileMaterial;
+        static int PatchResolution = 2000; // 2km
 
-        static Dictionary<Coordinates, Point[]> rowPatchMissingPoints;
-        static Dictionary<Coordinates, Point[]> columnPatchMissingPoints;
-        static Dictionary<Coordinates, Point> anglePatchMissingPoints;
+        static int CentreTileLon = 392000;
+        static int CentreTileLat = 5820000;
 
-        static int patchSize = 2000; // 2km
-        static int patchStep;
-
-        static int centreTileLon = 392;
-        static int centreTileLat = 5820;
+        static GameObject TilePrefab;
         #endregion
 
         static string[] Initialize(string terrainName)
         {
-            terrain = new GameObject(terrainName).transform;
+            Terrain = new GameObject(terrainName).transform;
 
             TilesWithMissingPoints = new List<Patch>();
 
-            patchStep = patchSize / 1000;
+            TilePrefab = Resources.Load<GameObject>("Tile");
 
-            var dataPaths = Directory.GetFiles(dataPath, "*.txt");
+            var dataPaths = Directory.GetFiles(DataPath, "*.txt");
 
             return dataPaths;
         }
@@ -48,23 +45,17 @@
         {
             var tileGO = new GameObject("Tile", new Type[] { typeof(MeshFilter), typeof(MeshRenderer) });
 
-            // Apply default material
-            tileGO.GetComponent<MeshRenderer>().material = tileMaterial;
-
             var mesh = new Mesh();
             tileGO.GetComponent<MeshFilter>().mesh = mesh;
 
             var hRes = TileResolution;
             var vRes = TileResolution;
 
-            Debug.Log(hRes + " " + vRes);
-
             var length = vRes - 1;
             var width = hRes - 1;
 
             #region Vertices		
             Vector3[] vertices = new Vector3[hRes * vRes];
-            Debug.Log(vertices.Length);
             // Loop columns
             for (int clm = 0; clm < hRes; clm++)
             {
@@ -80,10 +71,10 @@
             #endregion
 
             #region Normals
-            Vector3[] normales = new Vector3[vertices.Length];
-            for (int n = 0; n < normales.Length; n++)
+            Vector3[] normals = new Vector3[vertices.Length];
+            for (int n = 0; n < normals.Length; n++)
             {
-                normales[n] = Vector3.up;
+                normals[n] = Vector3.up;
             }
             #endregion
 
@@ -118,7 +109,7 @@
             #endregion
 
             mesh.vertices = vertices;
-            mesh.normals = normales;
+            mesh.normals = normals;
             mesh.uv = uvs;
             mesh.triangles = triangles;
 
@@ -130,239 +121,59 @@
         }
 
         [MenuItem("Cuku/Generate Terrain From DGM (1m grid)")]
-        static void GenerateTerrainFromDGM1System()
+        static void GenerateTerrainFromDGM1()
         {
             var filePaths = Initialize("Terrain DGM (1m grid)");
 
-            // Extract missing points from patches
-            for (int fp = 0; fp < filePaths.Length; fp++)
+            for (int filePath = 0; filePath < filePaths.Length; filePath++)
             {
-                ExtractPatchMissingPoints(filePaths[fp]);
+                CreateTiles(filePaths[filePath]);
             }
-
-            // Split patches to tiles
-            for (int fp = 0; fp < filePaths.Length; fp++)
-            {
-                SplitPatchToTiles(filePaths[fp]);
-            }
-        }
-
-        static Coordinates GetCoordinates(string filePath)
-        {
-            var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
-
-            return new Coordinates()
-            {
-                Lon = float.Parse(coordinates[0]),
-                Lat = float.Parse(coordinates[1])
-            };
         }
 
         #region Tile
-        static Transform CreateTile(Transform patchGO, OldTile tile)
+        static void CreateTiles(string filePath)
         {
-            // Create game object
-            var tileName = tile.Coordinates.Lon + "_" + tile.Coordinates.Lat;
+            // Create patch game oobject
+            var patch = new GameObject(Path.GetFileNameWithoutExtension(filePath)).transform;
+            patch.SetParent(Terrain);
 
-            var tileGO = new GameObject(tileName, new Type[] { typeof(MeshFilter), typeof(MeshRenderer) }).transform;
-            tileGO.SetParent(patchGO);
+            var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
+            var patchLon = Convert.ToInt32(coordinates[0]) * 1000;
+            var patchLat = Convert.ToInt32(coordinates[1]) * 1000;
 
-            // Apply default material
-            tileGO.GetComponent<MeshRenderer>().material = tileMaterial;
-
-            // Create mesh
-            CreateTileMesh(tileGO.GetComponent<MeshFilter>(), tile);
-
-            // Position relative to centre tile
-            //var shift = patchSize / 2 - tileSize / 2;
-            //var posX = (tile.Lon - centreTileLon) * 1000 - shift;
-            //var posZ = (tile.Lat - centreTileLat) * 1000 - shift;
-            var posX = (tile.Coordinates.Lon - centreTileLon) * 1000;
-            var posZ = (tile.Coordinates.Lat - centreTileLat) * 1000;
-            tileGO.position = new Vector3(Mathf.Round(posX), 0, Mathf.Round(posZ));
-
-            return tileGO;
-        }
-
-        static void SplitPatchToTiles(string filePath)
-        {
-            var coordinates = GetCoordinates(filePath);
-
-            var points = GetAllPoints(filePath, coordinates);
-
-            var hasMissingRow = points.Item1[0];
-            var hasMissingColumn = points.Item1[1];
-
-            // Order points in patch rows
-            var patchRowLength = patchSize + Convert.ToInt32(hasMissingColumn);
-
-            var patchRows = points.Item2.OrderBy(point => point.X)
-                .ThenBy(point => point.Y)
-                .Select((x, i) => new { Index = i, Value = x })
-                .GroupBy(x => x.Index / patchRowLength)
-                .Select(x => x.Select(v => v.Value).ToArray())
-                .ToArray();
-
-            Debug.Log(patchRows.Length + " | " + patchRows[0].Length);
-
-            Debug.Log(string.Format("{0} 0 > {1} | 1 > {2} | 2 > {3} | 3 > {4}", coordinates,
-                patchRows.First().First().X + ", " + patchRows.First().First().Y + ", " + patchRows.First().First().Z,
-                patchRows.First().Last().X + ", " + patchRows.First().Last().Y + ", " + patchRows.First().Last().Z,
-                patchRows.Last().First().X + ", " + patchRows.Last().First().Y + ", " + patchRows.Last().First().Z,
-                patchRows.Last().Last().X + ", " + patchRows.Last().Last().Y + ", " + patchRows.Last().Last().Z));
-
-            // Split points in tiles
-            var tiles = new List<OldTile>();
-            var tileCount = patchSize / TileResolution;
-            var tileCoordinateStep = patchStep * 1.0f / tileCount;
+            var TileCoordinateStep = PatchResolution / TilesPerPatch;
 
             // Loop vertical tiles
-            for (int vt = 0; vt < tileCount; vt++)
+            for (int vTile = 0; vTile < TilesPerPatch; vTile++)
             {
-                var tileLat = coordinates.Lat + vt * tileCoordinateStep;
-                var startCLm = vt * TileResolution;
+                var tileLat = patchLat + vTile * TileCoordinateStep;
 
                 // Loop horizontal tiles
-                for (int ht = 0; ht < tileCount; ht++)
+                for (int hTile = 0; hTile < TilesPerPatch; hTile++)
                 {
-                    var tileLon = coordinates.Lon + ht * tileCoordinateStep;
+                    var tileLon = patchLon + hTile * TileCoordinateStep;
 
-                    var hRes = TileResolution + 1;
-                    // Tile horizontal resolution is not whole if it is last horizontal tile and patch does not have missing column.
-                    if (ht == tileCount - 1 && !hasMissingColumn) hRes--;
-
-                    // Tile vertical resolution is not whole if it is last vertical tile and patch does not have missing row.
-                    var vRes = TileResolution + 1;
-                    if (vt == tileCount - 1 && !hasMissingRow) vRes--;
-
-                    // Create tile
-                    var tile = new OldTile()
-                    {
-                        Coordinates = new Coordinates()
-                        {
-                            Lon = tileLon,
-                            Lat = tileLat
-                        },
-                        HorizontalResolution = hRes,
-                        VerticalResolution = vRes
-                    };
-
-                    // Add heights
-                    var heights = new List<float>();
-                    // Loop tile columns
-                    for (int clm = startCLm; clm < startCLm + vRes; clm++)
-                    {
-                        var startRow = ht * TileResolution;
-
-                        // Loop tile rows
-                        for (int row = startRow; row < startRow + hRes; row++)
-                        {
-                            try
-                            {
-                                heights.Add(patchRows[row][clm].Z);
-                            }
-                            catch (Exception)
-                            {
-                                Debug.Log(row + ", " + clm + " - " + ht + ", " + vt + " - " + hRes + ", " + vRes + " - " + hasMissingRow + ", " + hasMissingColumn);
-                                continue;
-                            }
-                        }
-                    }
-
-                    tile.Heights = heights.ToArray();
-                    tiles.Add(tile);
+                    CreateTile(patch, tileLon, tileLat);
                 }
-            }
-
-            // Create patch gameo object
-            var patch = new GameObject(Path.GetFileNameWithoutExtension(filePath)).transform;
-            patch.SetParent(terrain);
-
-            // Create tiles
-            for (int t = 0; t < tiles.Count; t++)
-            {
-                CreateTile(patch, tiles[t]);
             }
         }
 
-        static void CreateTileMesh(MeshFilter filter, OldTile tile)
+        static GameObject CreateTile(Transform patch, int longitude, int latitude)
         {
-            var mesh = new Mesh();
-            filter.mesh = mesh;
+            var tile = GameObject.Instantiate<GameObject>(TilePrefab, patch);
+            tile.name = longitude + "_" + latitude;
 
-            var hRes = tile.HorizontalResolution;
-            var vRes = tile.VerticalResolution;
+            // Position relative to centre tile
+            var posX = longitude - CentreTileLon;
+            var posZ = latitude - CentreTileLat;
+            tile.transform.position = new Vector3(Mathf.Round(posX), 0, Mathf.Round(posZ));
 
-            Debug.Log(hRes + " " + vRes);
-
-            var length = vRes - 1;
-            var width = hRes - 1;
-
-            #region Vertices		
-            Vector3[] vertices = new Vector3[hRes * vRes];
-            Debug.Log(vertices.Length);
-            // Loop columns
-            for (int clm = 0; clm < hRes; clm++)
-            {
-                float vPos = ((float)clm / (hRes - 1)) * length;
-                // Loop rows
-                for (int row = 0; row < vRes; row++)
-                {
-                    float hPos = ((float)row / (vRes - 1)) * width;
-                    var id = row + clm * vRes;
-                    vertices[id] = new Vector3(hPos, tile.Heights[id], vPos);
-                }
-            }
-            #endregion
-
-            #region Normals
-            Vector3[] normales = new Vector3[vertices.Length];
-            for (int n = 0; n < normales.Length; n++)
-            {
-                normales[n] = Vector3.up;
-            }
-            #endregion
-
-            #region UVs		
-            Vector2[] uvs = new Vector2[vertices.Length];
-            for (int v = 0; v < hRes; v++)
-            {
-                for (int u = 0; u < vRes; u++)
-                {
-                    uvs[u + v * vRes] = new Vector2((float)u / (vRes - 1), (float)v / (hRes - 1));
-                }
-            }
-            #endregion
-
-            #region Triangles
-            int nbFaces = (vRes - 1) * (hRes - 1);
-            int[] triangles = new int[nbFaces * 6];
-            int t = 0;
-            for (int face = 0; face < nbFaces; face++)
-            {
-                // Retrieve lower left corner from face ind
-                int i = face % (vRes - 1) + (face / (hRes - 1) * vRes);
-
-                triangles[t++] = i + vRes;
-                triangles[t++] = i + 1;
-                triangles[t++] = i;
-
-                triangles[t++] = i + vRes;
-                triangles[t++] = i + vRes + 1;
-                triangles[t++] = i + 1;
-            }
-            #endregion
-
-            mesh.vertices = vertices;
-            mesh.normals = normales;
-            mesh.uv = uvs;
-            mesh.triangles = triangles;
-
-            //mesh.RecalculateBounds();
-            //mesh.Optimize();
+            return tile;
         }
         #endregion
 
+     /*   
         #region Points
         /// <summary>
         /// Missing points for each tile are:
@@ -462,41 +273,20 @@
             return new Tuple<bool[], Point[]>(missingPoints, points.ToArray());
         }
         #endregion
+   */
     }
 
     struct Patch
     {
-        public int Longitude;
-        public int Latitude;
+        public int Lon;
+        public int Lat;
         public Tile Tile;
     }
 
     struct Tile
     {
-        public int Longitude;
-        public int Latitude;
+        public int Lon;
+        public int Lat;
         public Mesh Mesh;
-    }
-
-    struct Coordinates
-    {
-        public float Lon;
-        public float Lat;
-    }
-
-    struct OldTile
-    {
-        public Coordinates Coordinates;
-        public int HorizontalResolution;
-        public int VerticalResolution;
-        // Order of points is: Left -> Right and Bottom -> Up
-        public float[] Heights;
-    }
-
-    struct Point
-    {
-        public float X;
-        public float Y;
-        public float Z;
     }
 }
