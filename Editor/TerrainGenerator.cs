@@ -131,17 +131,27 @@
             }
         }
 
-        #region Tile
         static void CreateTiles(string filePath)
         {
-            // Create patch game oobject
+            // Create patch game object
             var patch = new GameObject(Path.GetFileNameWithoutExtension(filePath)).transform;
             patch.SetParent(Terrain);
 
+            // Get coordinates
             var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
             var patchLon = Convert.ToInt32(coordinates[0]) * 1000;
             var patchLat = Convert.ToInt32(coordinates[1]) * 1000;
 
+            Patch tilesWithMissingPoints = new Patch()
+            {
+                Lon = patchLon,
+                Lat = patchLat,
+                Tiles = new Tile[2 * TilesPerPatch - 1]
+            };
+            int tilesWithMissingPointsId = 0;
+
+            // Create tile game objects
+            var tiles = new List<Tile>();
             var TileCoordinateStep = PatchResolution / TilesPerPatch;
 
             // Loop vertical tiles
@@ -154,12 +164,29 @@
                 {
                     var tileLon = patchLon + hTile * TileCoordinateStep;
 
-                    CreateTile(patch, tileLon, tileLat);
+                    var tileMesh = CreateTile(patch, tileLon, tileLat);
+                    var tile = new Tile()
+                    {
+                        Lon = tileLon,
+                        Lat = tileLat,
+                        Mesh = tileMesh
+                    };
+
+                    tiles.Add(tile);
+
+                    // Add top row tiles and right column tiles to tiles with missing points list
+                    if (vTile == TilesPerPatch - 1 || hTile == TilesPerPatch - 1)
+                    {
+                        tilesWithMissingPoints.Tiles[tilesWithMissingPointsId] = tile;
+                        tilesWithMissingPointsId++;
+                    }
                 }
             }
+
+            // Move tile points
         }
 
-        static GameObject CreateTile(Transform patch, int longitude, int latitude)
+        static Mesh CreateTile(Transform patch, int longitude, int latitude)
         {
             var tile = GameObject.Instantiate<GameObject>(TilePrefab, patch);
             tile.name = longitude + "_" + latitude;
@@ -169,9 +196,8 @@
             var posZ = latitude - CentreTileLat;
             tile.transform.position = new Vector3(Mathf.Round(posX), 0, Mathf.Round(posZ));
 
-            return tile;
+            return tile.GetComponent<Mesh>();
         }
-        #endregion
 
      /*   
         #region Points
@@ -280,7 +306,7 @@
     {
         public int Lon;
         public int Lat;
-        public Tile Tile;
+        public Tile[] Tiles;
     }
 
     struct Tile
