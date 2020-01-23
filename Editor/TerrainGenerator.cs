@@ -14,26 +14,32 @@
 
         static Transform Terrain;
 
-        static List<Patch> TilesWithMissingPoints;
-
         static GameObject TileObjectPrefab;
 
         static int PatchResolution = 2000; // 2km
 
         static int TileResolution = 201;
         static int TilesPerPatch = 10;
+        static int TileCoordinateStep;
 
         static int CentreTileLon = 392000;
         static int CentreTileLat = 5820000;
+
+        struct Tile
+        {
+            public int Lon;
+            public int Lat;
+            public Mesh Mesh;
+        }
         #endregion
 
         static string[] Initialize(string terrainName)
         {
             Terrain = new GameObject(terrainName).transform;
 
-            TilesWithMissingPoints = new List<Patch>();
-
             TileObjectPrefab = Resources.Load<GameObject>("Tile");
+
+            TileCoordinateStep = PatchResolution / TilesPerPatch;
 
             var dataPaths = Directory.GetFiles(DataPath, "*.txt");
 
@@ -62,17 +68,8 @@
             var patch = new GameObject(patchLon + "_" + patchLat).transform;
             patch.SetParent(Terrain);
 
-            Patch tilesWithMissingPoints = new Patch()
-            {
-                Lon = patchLon,
-                Lat = patchLat,
-                Tiles = new Tile[2 * TilesPerPatch - 1]
-            };
-            int tilesWithMissingPointsId = 0;
-
             // Create tile game objects
             var tiles = new Tile[TilesPerPatch * TilesPerPatch];
-            var TileCoordinateStep = PatchResolution / TilesPerPatch;
             int tileId = 0;
 
             // Loop vertical tiles
@@ -90,22 +87,15 @@
                     {
                         Lon = tileLon,
                         Lat = tileLat,
-                        MeshFilter = tileMesh
+                        Mesh = tileMesh
                     };
 
                     tiles[tileId] = tile;
                     tileId++;
-
-                    // Add top row tiles and right column tiles to tiles with missing points list
-                    if (vTile == TilesPerPatch - 1 || hTile == TilesPerPatch - 1)
-                    {
-                        tilesWithMissingPoints.Tiles[tilesWithMissingPointsId] = tile;
-                        tilesWithMissingPointsId++;
-                    }
                 }
             }
 
-            TilesWithMissingPoints.Add(tilesWithMissingPoints);
+            var tilesWithMissingPoints = GetTilesWithMissingPoints(patchLon, patchLat);
 
             // Move tile points
             using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
@@ -120,18 +110,18 @@
                     var lat = Convert.ToInt32(pointString[1]);
                     var height = float.Parse(pointString[2]);
 
-                    //var relatedTiles = GetPointTileMeshes(lon, lat, new Tile[] { tiles[0] });
-                    var relatedTiles = GetPointTileMeshes(lon, lat, tiles);
+                    //var relatedTiles = GetPointTiles(lon, lat, new Tile[] { tiles[0], tiles[1] }, tilesWithMissingPoints);
+                    var relatedTiles = GetPointTiles(lon, lat, tiles, tilesWithMissingPoints);
                     if (relatedTiles == null) continue;
                     for (int i = 0; i < relatedTiles.Length; i++)
                     {
                         MoveTilePoint(lon, lat, height, relatedTiles[i]);
-                    }                
+                    }
                 }
             }
         }
 
-        static MeshFilter CreateTile(Transform patch, int longitude, int latitude)
+        static Mesh CreateTile(Transform patch, int longitude, int latitude)
         {
             // Create mesh
             var mesh = CreateTileMesh(longitude + "_" + latitude);
@@ -146,13 +136,23 @@
             var posZ = latitude - CentreTileLat;
             tileObject.transform.position = new Vector3(Mathf.Round(posX), 0, Mathf.Round(posZ));
 
-            return tileObject.GetComponent<MeshFilter>();
+            return mesh;
         }
-
+        
         static Mesh CreateTileMesh(string name)
         {
-            var mesh = new Mesh();
-            mesh.name = name;
+            var path = "Assets/Resources/" + name + ".asset";
+
+            // Return mesh asset if it already exists
+            var existingMesh = AssetDatabase.LoadAssetAtPath(path, typeof(Mesh)) as Mesh;
+            if (existingMesh != null)
+            {
+                return existingMesh;
+            }
+
+            // Create new mesh asset
+            var newMesh = new Mesh();
+            newMesh.name = name;
 
             var hRes = TileResolution;
             var vRes = TileResolution;
@@ -214,30 +214,69 @@
             }
             #endregion
 
-            mesh.vertices = vertices;
-            mesh.normals = normals;
-            mesh.uv = uvs;
-            mesh.triangles = triangles;
+            newMesh.MarkDynamic();
+            newMesh.vertices = vertices;
+            newMesh.normals = normals;
+            newMesh.uv = uvs;
+            newMesh.triangles = triangles;
 
-            //mesh.RecalculateBounds();
-            //mesh.Optimize();
-
-            AssetDatabase.CreateAsset(mesh, "Assets/Resources/" + name + ".asset");
+            AssetDatabase.CreateAsset(newMesh, path);
             AssetDatabase.Refresh();
 
-            return mesh;
+            return newMesh;
         }
 
-        static Tile[] GetPointTileMeshes(int pointLon, int pointLat, Tile[] tiles)
+        static Tile[] GetTilesWithMissingPoints(int longitude, int latitude)
+        {
+            List<Tile> tilesWithMissingPoints = new List<Tile>();
+
+            // Get column of tiles with missing points
+            var leftTileLon = longitude - TileCoordinateStep;
+
+            for (int vt = 0; vt < TilesPerPatch; vt++)
+            {
+                var leftTileLat = latitude + vt * TileCoordinateStep;
+                
+                var mesh = Resources.Load<Mesh>(leftTileLon + "_" + leftTileLat);
+                if (mesh == null) continue;
+
+                var tile = new Tile()
+                {
+                    Lon = leftTileLon,
+                    Lat = leftTileLat,
+                    Mesh = mesh
+                };
+                tilesWithMissingPoints.Add(tile);
+            }
+
+            // Get row of tiles with missing points
+            var bottomTileLat = latitude - TileCoordinateStep;
+
+            for (int ht = 0; ht < TilesPerPatch; ht++)
+            {
+                var bottomTileLon = longitude + ht * TileCoordinateStep;
+
+                var mesh = Resources.Load<Mesh>(bottomTileLon + "_" + bottomTileLat);
+                if (mesh == null) continue;
+
+                var tile = new Tile()
+                {
+                    Lon = bottomTileLon,
+                    Lat = bottomTileLat,
+                    Mesh = mesh
+                };
+                tilesWithMissingPoints.Add(tile);
+            }
+
+            return tilesWithMissingPoints.ToArray();
+        }
+
+        static Tile[] GetPointTiles(int pointLon, int pointLat, Tile[] tiles, Tile[] tilesWithMissingPoints)
         {
             var relatedTiles = tiles.Where(tile => tile.Lon <= pointLon && pointLon < tile.Lon + TileResolution &&
             tile.Lat <= pointLat && pointLat < tile.Lat + TileResolution).ToArray();
 
-            if (relatedTiles.Length == 0)
-            {
-                //Debug.LogWarning("No tiles where found for point " + pointLon + "_" + pointLat);
-                return null;
-            }
+
 
             return relatedTiles;
         }
@@ -249,125 +288,12 @@
 
             var pointId = row * TileResolution + clm;
 
-            var vertices = tile.MeshFilter.sharedMesh.vertices;
+            tile.Mesh.MarkDynamic();
+
+            var vertices = tile.Mesh.vertices;
             vertices[pointId].y = height;
-            tile.MeshFilter.sharedMesh.vertices = vertices;
+
+            tile.Mesh.vertices = vertices;
         }
-
-        /*   
-           #region Points
-           /// <summary>
-           /// Missing points for each tile are:
-           /// first row of top tile,
-           /// first column of right tile,
-           /// first point of top right tile.
-           /// </summary>
-           /// <param name="filePath"></param>
-           static void ExtractPatchMissingPoints(string filePath)
-           {
-               var coordinates = GetCoordinates(filePath);
-               var points = GetPatchPoints(filePath);
-
-               rowPatchMissingPoints.Add(coordinates, points.Where(p => p.Y == coordinates.Lat * 1000).ToArray());
-               columnPatchMissingPoints.Add(coordinates, points.Where(p => p.X == coordinates.Lon * 1000).ToArray());
-               anglePatchMissingPoints.Add(coordinates, points.FirstOrDefault(p => p.X == coordinates.Lon * 1000 && p.Y == coordinates.Lat * 1000));
-           }
-
-           static Tuple<bool[], Point[]> GetAllPoints(string filePath, Coordinates coordinates)
-           {
-               var allPoints = new List<Point>();
-
-               // Get file points
-               allPoints.AddRange(GetPatchPoints(filePath));
-
-               // Get missing points from other patches
-               var missingPoints = GetMissingPoints(coordinates);
-               allPoints.AddRange(missingPoints.Item2);
-
-               return new Tuple<bool[], Point[]>(missingPoints.Item1, allPoints.ToArray());
-           }
-
-           static Point[] GetPatchPoints(string filePath)
-           {
-               List<Point> points = new List<Point>();
-               using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-               using (BufferedStream bs = new BufferedStream(fs))
-               using (StreamReader sr = new StreamReader(bs))
-               {
-                   string line;
-                   while ((line = sr.ReadLine()) != null)
-                   {
-                       var pointString = line.Split(new char[] { ' ' });
-                       points.Add(new Point()
-                       {
-                           X = float.Parse(pointString[0]),
-                           Y = float.Parse(pointString[1]),
-                           Z = float.Parse(pointString[2]),
-                       });
-                   }
-               }
-
-               return points.ToArray();
-           }
-
-           static Tuple<bool[], Point[]> GetMissingPoints(Coordinates coordinates)
-           {
-               List<Point> points = new List<Point>();
-               var missingPoints = new bool[] { false, false };
-
-               var rowMissingPoints = rowPatchMissingPoints
-                   .FirstOrDefault(mp => mp.Key.Lon == coordinates.Lon && mp.Key.Lat == coordinates.Lat + patchStep);
-               if (!rowMissingPoints.Equals(default(KeyValuePair<Coordinates, Point[]>)))
-               {
-                   var rowPoints = rowMissingPoints.Value.Where(p => rowMissingPoints.Key.Lat * 1000 == p.Y);
-                   points.AddRange(rowPoints);
-                   rowPatchMissingPoints.Remove(rowMissingPoints.Key);
-                   missingPoints[0] = true;
-                   Debug.Log("Top: " + rowMissingPoints.Key.Lon + "_" + rowMissingPoints.Key.Lat + " " + points.Count());
-               }
-
-               var columnMissingPoints = columnPatchMissingPoints
-                   .FirstOrDefault(mp => mp.Key.Lon == coordinates.Lon + patchStep && mp.Key.Lat == coordinates.Lat);
-               if (!columnMissingPoints.Equals(default(KeyValuePair<Coordinates, Point[]>)))
-               {
-                   var columnPoints = columnMissingPoints.Value.Where(p => columnMissingPoints.Key.Lon * 1000 == p.X);
-                   points.AddRange(columnPoints);
-                   columnPatchMissingPoints.Remove(columnMissingPoints.Key);
-                   missingPoints[1] = true;
-                   Debug.Log("Right: " + columnMissingPoints.Key.Lon + "_" + columnMissingPoints.Key.Lat + " " + points.Count());
-               }
-
-               if (missingPoints.All(mp => mp == true))
-               {
-                   var angleMissingPoint = anglePatchMissingPoints
-                       .FirstOrDefault(mp => mp.Key.Lon == coordinates.Lon + patchStep && mp.Key.Lat == coordinates.Lat + patchStep);
-                   if (!angleMissingPoint.Equals(default(KeyValuePair<Coordinates, Point[]>)))
-                   {
-                       var anglePoint = angleMissingPoint.Value;
-                       points.Add(anglePoint);
-                       anglePatchMissingPoints.Remove(angleMissingPoint.Key);
-                   }
-                   Debug.Log("TopRight: " + angleMissingPoint.Key.Lon + "_" + angleMissingPoint.Key.Lat);
-               }
-
-               Debug.Log(points.Count);
-               return new Tuple<bool[], Point[]>(missingPoints, points.ToArray());
-           }
-           #endregion
-      */
-    }
-
-    struct Patch
-    {
-        public int Lon;
-        public int Lat;
-        public Tile[] Tiles;
-    }
-
-    struct Tile
-    {
-        public int Lon;
-        public int Lat;
-        public MeshFilter MeshFilter;
     }
 }
