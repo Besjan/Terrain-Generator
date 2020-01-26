@@ -11,6 +11,7 @@
     {
         #region Properties
         static string DataPath = "Assets/StreamingAssets/Test";
+        static string TilesPath = "Assets/StreamingAssets/Tiles";
 
         static Transform Terrain;
 
@@ -18,7 +19,8 @@
 
         static int PatchResolution = 2000; // 2km
 
-        static int TileResolution = 201;
+        static int TileResolution = 512;
+
         static int TilesPerPatch = 10;
         static int TileCoordinateStep;
 
@@ -53,7 +55,74 @@
 
             for (int filePath = 0; filePath < filePaths.Length; filePath++)
             {
-                CreateTiles(filePaths[filePath]);
+                CreateTilesData(filePaths[filePath]);
+            }
+        }
+
+        static void CreateTilesData(string filePath)
+        {
+            // Get patch coordinates
+            var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
+            var patchLon = Convert.ToInt32(coordinates[0]) * 1000;
+            var patchLat = Convert.ToInt32(coordinates[1]) * 1000;
+
+            // Get or create tiles data files
+
+
+            // Create patch game object
+            var patch = new GameObject(patchLon + "_" + patchLat).transform;
+            patch.SetParent(Terrain);
+
+            // Create tile game objects
+            var tiles = new Tile[TilesPerPatch * TilesPerPatch];
+            int tileId = 0;
+
+            // Loop vertical tiles
+            for (int vTile = 0; vTile < TilesPerPatch; vTile++)
+            {
+                var tileLat = patchLat + vTile * TileCoordinateStep;
+
+                // Loop horizontal tiles
+                for (int hTile = 0; hTile < TilesPerPatch; hTile++)
+                {
+                    var tileLon = patchLon + hTile * TileCoordinateStep;
+
+                    var tileMesh = CreateTile(patch, tileLon, tileLat);
+                    var tile = new Tile()
+                    {
+                        Lon = tileLon,
+                        Lat = tileLat,
+                        Mesh = tileMesh
+                    };
+
+                    tiles[tileId] = tile;
+                    tileId++;
+                }
+            }
+
+            var tilesWithMissingPoints = GetTilesWithMissingPoints(patchLon, patchLat);
+
+            // Move tile points
+            using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (BufferedStream bs = new BufferedStream(fs))
+            using (StreamReader sr = new StreamReader(bs))
+            {
+                string line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    var pointString = line.Split(new char[] { ' ' });
+                    var lon = Convert.ToInt32(pointString[0]);
+                    var lat = Convert.ToInt32(pointString[1]);
+                    var height = float.Parse(pointString[2]);
+
+                    //var relatedTiles = GetPointTiles(lon, lat, new Tile[] { tiles[0], tiles[1] }, tilesWithMissingPoints);
+                    var relatedTiles = GetPointTiles(lon, lat, tiles, tilesWithMissingPoints);
+                    if (relatedTiles == null) continue;
+                    for (int i = 0; i < relatedTiles.Length; i++)
+                    {
+                        MoveTilePoint(lon, lat, height, relatedTiles[i]);
+                    }
+                }
             }
         }
 
