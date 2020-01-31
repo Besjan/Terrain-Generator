@@ -6,6 +6,7 @@
     using System.IO;
     using System;
     using System.Linq;
+    using System.Runtime.Serialization.Formatters.Binary;
 
     public class TerrainGenerator
     {
@@ -19,19 +20,26 @@
 
         static int PatchResolution = 2000; // 2km
 
-        static int TileResolution = 512;
+        static int TileResolution = 4097;
 
         static int TilesPerPatch = 10;
         static int TileCoordinateStep;
 
-        static int CentreTileLon = 392000;
-        static int CentreTileLat = 5820000;
+        static int CenterTileLon = 392000;
+        static int CenterTileLat = 5820000;
 
         struct Tile
         {
             public int Lon;
             public int Lat;
             public Mesh Mesh;
+        }
+
+        struct TileData
+        {
+            public string Id;
+            public float MaxHeight;
+            public float[,] Heights;
         }
         #endregion
 
@@ -67,7 +75,29 @@
             var patchLat = Convert.ToInt32(coordinates[1]) * 1000;
 
             // Get or create tiles data files
+            var firstTileX = (patchLon - CenterTileLon) / TileResolution;
+            var firstTileY = (patchLat - CenterTileLat) / TileResolution;
+            var firstTileId = string.Format("{0}_{1}", firstTileX, firstTileY);
 
+            var secondTileX = Convert.ToInt32((patchLon - CenterTileLon + Mathf.Sign(firstTileX) * PatchResolution) / TileResolution);
+            var secondTileY = Convert.ToInt32((patchLat - CenterTileLat + Mathf.Sign(firstTileX) * PatchResolution) / TileResolution);
+            var secondTileId = string.Format("{0}_{1}", secondTileX, secondTileY);
+
+            Debug.Log(firstTileId);
+            Debug.Log(secondTileId);
+
+            var tilesData = new List<TileData>();
+            GetOrCreateTileData(tilesData, firstTileId);
+            if (secondTileId != firstTileId) GetOrCreateTileData(tilesData, secondTileId);
+
+            Debug.Log(tilesData.Count);
+            Debug.Log("-----------------");
+
+
+
+            SaveTilesData(tilesData);
+
+            return;
 
             // Create patch game object
             var patch = new GameObject(patchLon + "_" + patchLat).transform;
@@ -124,6 +154,78 @@
                     }
                 }
             }
+        }
+
+        static void GetOrCreateTileData(List<TileData> tiles, string tileId)
+        {
+            var path = Directory.GetFiles(TilesPath, "*.dat").FirstOrDefault(tp => tp.Contains(tileId));
+            if (File.Exists(path))
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                FileStream file = File.Open(path, FileMode.Open);
+                var heights = (float[,])bf.Deserialize(file);
+                file.Close();
+
+                var maxHeight = float.Parse(Path.GetFileNameWithoutExtension(path).Split('_').Last());
+                tiles.Add(new TileData
+                {
+                    Id = tileId,
+                    MaxHeight = maxHeight,
+                    Heights = heights
+                });
+                return;
+            }
+
+            tiles.Add(new TileData
+            {
+                Id = tileId,
+                MaxHeight = 0,
+                Heights = new float[TileResolution, TileResolution]
+            });
+            return;
+        }
+
+        static void SaveTilesData(List<TileData> tiles)
+        {
+            foreach (var tile in tiles)
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                var path = Path.Combine(TilesPath, string.Format("{0}_{1}.dat", tile.Id, tile.MaxHeight));
+                FileStream file = File.Create(path);
+                bf.Serialize(file, tile.Heights);
+                file.Close();
+            }
+        }
+
+        /// <summary>
+        /// Creates terrain data from heights.
+        /// </summary>
+        /// <param name="heightPercents">Terrain height percentages ranging from 0 to 1.</param>
+        /// <param name="maxHeight">The maximum height of the terrain, corresponding to a height percentage of 1.</param>
+        /// <param name="heightSampleDistance">The horizontal/vertical distance between height samples.</param>
+        /// <returns>A TerrainData instance.</returns>
+        static TerrainData CreateTerrainData(float[,] heightPercents, float maxHeight, float heightSampleDistance)
+        {
+            Debug.Assert((heightPercents.GetLength(0) == heightPercents.GetLength(1)) && (maxHeight >= 0) && (heightSampleDistance >= 0));
+
+            // Create the TerrainData.
+            var terrainData = new TerrainData();
+            terrainData.heightmapResolution = heightPercents.GetLength(0);
+
+            var terrainWidth = (terrainData.heightmapResolution - 1) * heightSampleDistance;
+
+            // If maxHeight is 0, leave all the heights in terrainData at 0 and make the vertical size of the terrain 1 to ensure valid AABBs.
+            if (Mathf.Approximately(maxHeight, 0))
+            {
+                terrainData.size = new Vector3(terrainWidth, 1, terrainWidth);
+            }
+            else
+            {
+                terrainData.size = new Vector3(terrainWidth, maxHeight, terrainWidth);
+                terrainData.SetHeights(0, 0, heightPercents);
+            }
+
+            return terrainData;
         }
 
         static void CreateTiles(string filePath)
@@ -201,8 +303,8 @@
             tileObject.GetComponent<MeshFilter>().sharedMesh = mesh;
 
             // Position relative to centre tile
-            var posX = longitude - CentreTileLon;
-            var posZ = latitude - CentreTileLat;
+            var posX = longitude - CenterTileLon;
+            var posZ = latitude - CenterTileLat;
             tileObject.transform.position = new Vector3(Mathf.Round(posX), 0, Mathf.Round(posZ));
 
             return mesh;
