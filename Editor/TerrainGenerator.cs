@@ -6,13 +6,12 @@
     using System.IO;
     using System;
     using System.Linq;
-    using System.Runtime.Serialization.Formatters.Binary;
 
     public class TerrainGenerator
     {
         #region Properties
         static string DataPath = "Assets/StreamingAssets/Test";
-        static string TilesPath = "Assets/StreamingAssets/Tiles";
+        static string TerrainDataPath = "TerrainData/";
 
         static Transform Terrain;
 
@@ -73,13 +72,14 @@
             var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
             var patchLon = Convert.ToInt32(coordinates[0]) * 1000;
             var patchLat = Convert.ToInt32(coordinates[1]) * 1000;
+            Debug.Log(patchLon + "_" + patchLat);
 
             // Get or create tiles data
-            var tile1X = (patchLon - CenterTileLon) / TileResolution;
-            var tile1Z = (patchLat - CenterTileLat) / TileResolution;
+            var tile1X = (int)Math.Floor(1f * (patchLon - CenterTileLon) / TileResolution);
+            var tile1Z = (int)Math.Floor(1f * (patchLat - CenterTileLat) / TileResolution);
             var tile1Id = string.Format("{0}_{1}", tile1X, tile1Z);
 
-            // Calculate lon and lat limits
+            // Calculate lon and lat bounds
             var tile1Bounds = new int[4];
             tile1Bounds[0] = CenterTileLon + tile1X * (TileResolution - 1);
             tile1Bounds[1] = tile1Bounds[0] + (TileResolution - 1);
@@ -88,15 +88,15 @@
 
             Debug.Log(tile1Bounds[0] + " | " + tile1Bounds[1] + " | " + tile1Bounds[2] + " | " + tile1Bounds[3]);
 
-            var tile2X = Convert.ToInt32((patchLon - CenterTileLon + Math.Sign(tile1X) * PatchResolution) / TileResolution);
-            var tile2Z = Convert.ToInt32((patchLat - CenterTileLat + Math.Sign(tile1Z) * PatchResolution) / TileResolution);
+            var tile2X = (int)Math.Floor(1f * (patchLon - CenterTileLon + (tile1X >= 0 ? 1 : -1) * PatchResolution) / TileResolution);
+            var tile2Z = (int)Math.Floor(1f * (patchLat - CenterTileLat + (tile1X >= 0 ? 1 : -1) * PatchResolution) / TileResolution);
             var tile2Id = string.Format("{0}_{1}", tile2X, tile2Z);
 
             Debug.Log(tile1Id);
             Debug.Log(tile2Id);
 
             var tilesData = new List<TileData>();
-            GetOrCreateTileData(tilesData, tile1Id, tile1Bounds);
+            GetOrCreateRelatedTile(tilesData, tile1Id, tile1Bounds);
             if (tile2Id != tile1Id)
             {
                 // Calculate lon and lat limits
@@ -106,14 +106,14 @@
                 tile2Bounds[2] = CenterTileLat + tile2Z * (TileResolution - 1);
                 tile2Bounds[3] = tile2Bounds[2] + (TileResolution - 1);
 
-                GetOrCreateTileData(tilesData, tile2Id, tile2Bounds);
+                GetOrCreateRelatedTile(tilesData, tile2Id, tile2Bounds);
             }
 
             Debug.Log(tilesData.Count);
             Debug.Log("-----------------");
 
             // Put all patch points in related tiles
-            using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (BufferedStream bs = new BufferedStream(fs))
             using (StreamReader sr = new StreamReader(bs))
             {
@@ -132,23 +132,16 @@
             foreach (var tile in tilesData)
             {
                 var terrainData = CreateTerrainData(tile.Heights);
-                AssetDatabase.CreateAsset(terrainData, string.Format("Assets/TerrainData/{0}.asset", tile.Id));
-                //CreateTileMesh(tile.Id, tile.Heights);
+                AssetDatabase.CreateAsset(terrainData, string.Format("Assets/Resources/{0}{1}.asset", TerrainDataPath, tile.Id));
             }
-
-            //SaveTilesData(tilesData);
         }
 
-        static void GetOrCreateTileData(List<TileData> tiles, string tileId, int[] bounds)
+        static void GetOrCreateRelatedTile(List<TileData> tiles, string tileId, int[] bounds)
         {
-            var path = Directory.GetFiles(TilesPath, "*.dat").FirstOrDefault(tp => tp.Contains(tileId));
-            if (File.Exists(path))
+            var terrainData = Resources.Load<TerrainData>(TerrainDataPath + tileId);
+            if (terrainData != null)
             {
-                BinaryFormatter bf = new BinaryFormatter();
-                FileStream file = File.Open(path, FileMode.Open);
-                var heights = (float[,])bf.Deserialize(file);
-                file.Close();
-
+                var heights = DenormalizeHeights(terrainData.GetHeights(0, 0, TileResolution, TileResolution), terrainData.size.y);
                 tiles.Add(new TileData
                 {
                     Id = tileId,
@@ -167,34 +160,18 @@
             return;
         }
 
-        static void SaveTilesData(List<TileData> tiles)
-        {
-            foreach (var tile in tiles)
-            {
-                BinaryFormatter bf = new BinaryFormatter();
-                var path = Path.Combine(TilesPath, string.Format("{0}.dat", tile.Id));
-                FileStream file = File.Create(path);
-                bf.Serialize(file, tile.Heights);
-                file.Close();
-            }
-        }
-
         static void MoveTilePoint(int pointLon, int pointLat, float height, List<TileData> tiles)
         {
             foreach (var tile in tiles)
             {
-                //if (pointLon < tile.Bounds[0] || pointLon > tile.Bounds[1] ||
-                //    pointLat < tile.Bounds[2] || pointLat > tile.Bounds[3])
-                //    continue;
+                if (pointLon < tile.Bounds[0] || pointLon > tile.Bounds[1] ||
+                    pointLat < tile.Bounds[2] || pointLat > tile.Bounds[3])
+                    continue;
 
                 var clm = pointLon - tile.Bounds[0];
                 var row = pointLat - tile.Bounds[2];
 
-                //Debug.Log(clm + " | " + row);
-
                 tile.Heights[row, clm] = height;
-                //Debug.Log(tile.Bounds[0] + " | " + tile.Bounds[1] + " | " + tile.Bounds[2] + " | " + tile.Bounds[3]);
-                //Debug.Log(pointLon + " | " + pointLat);
             }
         }
 
@@ -207,16 +184,7 @@
         static TerrainData CreateTerrainData(float[,] heights, float heightSampleDistance = 1)
         {
             var maxHeight = heights.Cast<float>().Max();
-
-            int bound0 = heights.GetUpperBound(0);
-            int bound1 = heights.GetUpperBound(1);
-            for (int clm = 0; clm <= bound0; clm++)
-            {
-                for (int row = 0; row <= bound1; row++)
-                {
-                    heights[row, clm] /= maxHeight;
-                }
-            }
+            heights = NormalizeHeights(heights, maxHeight);
 
             Debug.Assert((heights.GetLength(0) == heights.GetLength(1)) && (maxHeight >= 0) && (heightSampleDistance >= 0));
 
@@ -238,6 +206,36 @@
             }
 
             return terrainData;
+        }
+
+        static float[,] NormalizeHeights(float[,] heights, float maxHeight)
+        {
+            int bound0 = heights.GetUpperBound(0);
+            int bound1 = heights.GetUpperBound(1);
+            for (int clm = 0; clm <= bound0; clm++)
+            {
+                for (int row = 0; row <= bound1; row++)
+                {
+                    heights[row, clm] /= maxHeight;
+                }
+            }
+
+            return heights;
+        }
+
+        static float[,] DenormalizeHeights(float[,] heights, float maxHeight)
+        {
+            int bound0 = heights.GetUpperBound(0);
+            int bound1 = heights.GetUpperBound(1);
+            for (int clm = 0; clm <= bound0; clm++)
+            {
+                for (int row = 0; row <= bound1; row++)
+                {
+                    heights[row, clm] *= maxHeight;
+                }
+            }
+
+            return heights;
         }
 
         static Mesh CreateTileMesh(string name, float[,] heights)
