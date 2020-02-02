@@ -38,14 +38,14 @@
         struct TileData
         {
             public string Id;
-            public float MaxHeight;
             public float[,] Heights;
+            public int[] Bounds;
         }
         #endregion
 
         static string[] Initialize(string terrainName)
         {
-            Terrain = new GameObject(terrainName).transform;
+            //Terrain = new GameObject(terrainName).transform;
 
             TileObjectPrefab = Resources.Load<GameObject>("Tile");
 
@@ -74,65 +74,45 @@
             var patchLon = Convert.ToInt32(coordinates[0]) * 1000;
             var patchLat = Convert.ToInt32(coordinates[1]) * 1000;
 
-            // Get or create tiles data files
-            var firstTileX = (patchLon - CenterTileLon) / TileResolution;
-            var firstTileY = (patchLat - CenterTileLat) / TileResolution;
-            var firstTileId = string.Format("{0}_{1}", firstTileX, firstTileY);
+            // Get or create tiles data
+            var tile1X = (patchLon - CenterTileLon) / TileResolution;
+            var tile1Z = (patchLat - CenterTileLat) / TileResolution;
+            var tile1Id = string.Format("{0}_{1}", tile1X, tile1Z);
 
-            var secondTileX = Convert.ToInt32((patchLon - CenterTileLon + Mathf.Sign(firstTileX) * PatchResolution) / TileResolution);
-            var secondTileY = Convert.ToInt32((patchLat - CenterTileLat + Mathf.Sign(firstTileX) * PatchResolution) / TileResolution);
-            var secondTileId = string.Format("{0}_{1}", secondTileX, secondTileY);
+            // Calculate lon and lat limits
+            var tile1Bounds = new int[4];
+            tile1Bounds[0] = CenterTileLon + tile1X * (TileResolution - 1);
+            tile1Bounds[1] = tile1Bounds[0] + (TileResolution - 1);
+            tile1Bounds[2] = CenterTileLat + tile1Z * (TileResolution - 1);
+            tile1Bounds[3] = tile1Bounds[2] + (TileResolution - 1);
 
-            Debug.Log(firstTileId);
-            Debug.Log(secondTileId);
+            Debug.Log(tile1Bounds[0] + " | " + tile1Bounds[1] + " | " + tile1Bounds[2] + " | " + tile1Bounds[3]);
+
+            var tile2X = Convert.ToInt32((patchLon - CenterTileLon + Math.Sign(tile1X) * PatchResolution) / TileResolution);
+            var tile2Z = Convert.ToInt32((patchLat - CenterTileLat + Math.Sign(tile1Z) * PatchResolution) / TileResolution);
+            var tile2Id = string.Format("{0}_{1}", tile2X, tile2Z);
+
+            Debug.Log(tile1Id);
+            Debug.Log(tile2Id);
 
             var tilesData = new List<TileData>();
-            GetOrCreateTileData(tilesData, firstTileId);
-            if (secondTileId != firstTileId) GetOrCreateTileData(tilesData, secondTileId);
+            GetOrCreateTileData(tilesData, tile1Id, tile1Bounds);
+            if (tile2Id != tile1Id)
+            {
+                // Calculate lon and lat limits
+                var tile2Bounds = new int[4];
+                tile2Bounds[0] = CenterTileLon + tile2X * (TileResolution - 1);
+                tile2Bounds[1] = tile2Bounds[0] + (TileResolution - 1);
+                tile2Bounds[2] = CenterTileLat + tile2Z * (TileResolution - 1);
+                tile2Bounds[3] = tile2Bounds[2] + (TileResolution - 1);
+
+                GetOrCreateTileData(tilesData, tile2Id, tile2Bounds);
+            }
 
             Debug.Log(tilesData.Count);
             Debug.Log("-----------------");
 
-
-
-            SaveTilesData(tilesData);
-
-            return;
-
-            // Create patch game object
-            var patch = new GameObject(patchLon + "_" + patchLat).transform;
-            patch.SetParent(Terrain);
-
-            // Create tile game objects
-            var tiles = new Tile[TilesPerPatch * TilesPerPatch];
-            int tileId = 0;
-
-            // Loop vertical tiles
-            for (int vTile = 0; vTile < TilesPerPatch; vTile++)
-            {
-                var tileLat = patchLat + vTile * TileCoordinateStep;
-
-                // Loop horizontal tiles
-                for (int hTile = 0; hTile < TilesPerPatch; hTile++)
-                {
-                    var tileLon = patchLon + hTile * TileCoordinateStep;
-
-                    var tileMesh = CreateTile(patch, tileLon, tileLat);
-                    var tile = new Tile()
-                    {
-                        Lon = tileLon,
-                        Lat = tileLat,
-                        Mesh = tileMesh
-                    };
-
-                    tiles[tileId] = tile;
-                    tileId++;
-                }
-            }
-
-            var tilesWithMissingPoints = GetTilesWithMissingPoints(patchLon, patchLat);
-
-            // Move tile points
+            // Put all patch points in related tiles
             using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (BufferedStream bs = new BufferedStream(fs))
             using (StreamReader sr = new StreamReader(bs))
@@ -145,18 +125,21 @@
                     var lat = Convert.ToInt32(pointString[1]);
                     var height = float.Parse(pointString[2]);
 
-                    //var relatedTiles = GetPointTiles(lon, lat, new Tile[] { tiles[0], tiles[1] }, tilesWithMissingPoints);
-                    var relatedTiles = GetPointTiles(lon, lat, tiles, tilesWithMissingPoints);
-                    if (relatedTiles == null) continue;
-                    for (int i = 0; i < relatedTiles.Length; i++)
-                    {
-                        MoveTilePoint(lon, lat, height, relatedTiles[i]);
-                    }
+                    MoveTilePoint(lon, lat, height, tilesData);
                 }
             }
+
+            foreach (var tile in tilesData)
+            {
+                var terrainData = CreateTerrainData(tile.Heights);
+                AssetDatabase.CreateAsset(terrainData, string.Format("Assets/TerrainData/{0}.asset", tile.Id));
+                //CreateTileMesh(tile.Id, tile.Heights);
+            }
+
+            //SaveTilesData(tilesData);
         }
 
-        static void GetOrCreateTileData(List<TileData> tiles, string tileId)
+        static void GetOrCreateTileData(List<TileData> tiles, string tileId, int[] bounds)
         {
             var path = Directory.GetFiles(TilesPath, "*.dat").FirstOrDefault(tp => tp.Contains(tileId));
             if (File.Exists(path))
@@ -166,12 +149,11 @@
                 var heights = (float[,])bf.Deserialize(file);
                 file.Close();
 
-                var maxHeight = float.Parse(Path.GetFileNameWithoutExtension(path).Split('_').Last());
                 tiles.Add(new TileData
                 {
                     Id = tileId,
-                    MaxHeight = maxHeight,
-                    Heights = heights
+                    Heights = heights,
+                    Bounds = bounds
                 });
                 return;
             }
@@ -179,8 +161,8 @@
             tiles.Add(new TileData
             {
                 Id = tileId,
-                MaxHeight = 0,
-                Heights = new float[TileResolution, TileResolution]
+                Heights = new float[TileResolution, TileResolution],
+                Bounds = bounds
             });
             return;
         }
@@ -190,27 +172,57 @@
             foreach (var tile in tiles)
             {
                 BinaryFormatter bf = new BinaryFormatter();
-                var path = Path.Combine(TilesPath, string.Format("{0}_{1}.dat", tile.Id, tile.MaxHeight));
+                var path = Path.Combine(TilesPath, string.Format("{0}.dat", tile.Id));
                 FileStream file = File.Create(path);
                 bf.Serialize(file, tile.Heights);
                 file.Close();
             }
         }
 
+        static void MoveTilePoint(int pointLon, int pointLat, float height, List<TileData> tiles)
+        {
+            foreach (var tile in tiles)
+            {
+                //if (pointLon < tile.Bounds[0] || pointLon > tile.Bounds[1] ||
+                //    pointLat < tile.Bounds[2] || pointLat > tile.Bounds[3])
+                //    continue;
+
+                var clm = pointLon - tile.Bounds[0];
+                var row = pointLat - tile.Bounds[2];
+
+                //Debug.Log(clm + " | " + row);
+
+                tile.Heights[row, clm] = height;
+                //Debug.Log(tile.Bounds[0] + " | " + tile.Bounds[1] + " | " + tile.Bounds[2] + " | " + tile.Bounds[3]);
+                //Debug.Log(pointLon + " | " + pointLat);
+            }
+        }
+
         /// <summary>
         /// Creates terrain data from heights.
         /// </summary>
-        /// <param name="heightPercents">Terrain height percentages ranging from 0 to 1.</param>
-        /// <param name="maxHeight">The maximum height of the terrain, corresponding to a height percentage of 1.</param>
+        /// <param name="heights">Terrain height percentages ranging from 0 to 1.</param>
         /// <param name="heightSampleDistance">The horizontal/vertical distance between height samples.</param>
         /// <returns>A TerrainData instance.</returns>
-        static TerrainData CreateTerrainData(float[,] heightPercents, float maxHeight, float heightSampleDistance)
+        static TerrainData CreateTerrainData(float[,] heights, float heightSampleDistance = 1)
         {
-            Debug.Assert((heightPercents.GetLength(0) == heightPercents.GetLength(1)) && (maxHeight >= 0) && (heightSampleDistance >= 0));
+            var maxHeight = heights.Cast<float>().Max();
+
+            int bound0 = heights.GetUpperBound(0);
+            int bound1 = heights.GetUpperBound(1);
+            for (int clm = 0; clm <= bound0; clm++)
+            {
+                for (int row = 0; row <= bound1; row++)
+                {
+                    heights[row, clm] /= maxHeight;
+                }
+            }
+
+            Debug.Assert((heights.GetLength(0) == heights.GetLength(1)) && (maxHeight >= 0) && (heightSampleDistance >= 0));
 
             // Create the TerrainData.
             var terrainData = new TerrainData();
-            terrainData.heightmapResolution = heightPercents.GetLength(0);
+            terrainData.heightmapResolution = heights.GetLength(0);
 
             var terrainWidth = (terrainData.heightmapResolution - 1) * heightSampleDistance;
 
@@ -222,10 +234,91 @@
             else
             {
                 terrainData.size = new Vector3(terrainWidth, maxHeight, terrainWidth);
-                terrainData.SetHeights(0, 0, heightPercents);
+                terrainData.SetHeights(0, 0, heights);
             }
 
             return terrainData;
+        }
+
+        static Mesh CreateTileMesh(string name, float[,] heights)
+        {
+            // Create new mesh asset
+            var newMesh = new Mesh();
+            newMesh.name = name;
+            newMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+
+            var hRes = heights.GetUpperBound(0) - 1;
+            var vRes = heights.GetUpperBound(1) - 1;
+
+            var length = vRes - 1;
+            var width = hRes - 1;
+
+            #region Vertices		
+            Vector3[] vertices = new Vector3[hRes * vRes];
+            // Loop columns
+            for (int clm = 0; clm < hRes; clm++)
+            {
+                float vPos = ((float)clm / (hRes - 1)) * length;
+                // Loop rows
+                for (int row = 0; row < vRes; row++)
+                {
+                    float hPos = ((float)row / (vRes - 1)) * width;
+                    var id = row + clm * vRes;
+                    vertices[id] = new Vector3(hPos, heights[row, clm], vPos);
+                }
+            }
+            #endregion
+
+            #region Normals
+            Vector3[] normals = new Vector3[vertices.Length];
+            for (int n = 0; n < normals.Length; n++)
+            {
+                normals[n] = Vector3.up;
+            }
+            #endregion
+
+            #region UVs		
+            Vector2[] uvs = new Vector2[vertices.Length];
+            for (int v = 0; v < hRes; v++)
+            {
+                for (int u = 0; u < vRes; u++)
+                {
+                    uvs[u + v * vRes] = new Vector2((float)u / (vRes - 1), (float)v / (hRes - 1));
+                }
+            }
+            #endregion
+
+            #region Triangles
+            int nbFaces = (vRes - 1) * (hRes - 1);
+            int[] triangles = new int[nbFaces * 6];
+            int t = 0;
+            for (int face = 0; face < nbFaces; face++)
+            {
+                // Retrieve lower left corner from face ind
+                int i = face % (vRes - 1) + (face / (hRes - 1) * vRes);
+
+                triangles[t++] = i + vRes;
+                triangles[t++] = i + 1;
+                triangles[t++] = i;
+
+                triangles[t++] = i + vRes;
+                triangles[t++] = i + vRes + 1;
+                triangles[t++] = i + 1;
+            }
+            #endregion
+
+            newMesh.MarkDynamic();
+            newMesh.vertices = vertices;
+            newMesh.normals = normals;
+            newMesh.uv = uvs;
+            newMesh.triangles = triangles;
+
+            var meshObj = new GameObject(name);
+            var mf = meshObj.AddComponent<MeshFilter>();
+            mf.mesh = newMesh;
+            meshObj.AddComponent<MeshRenderer>();
+
+            return newMesh;
         }
 
         static void CreateTiles(string filePath)
@@ -309,7 +402,7 @@
 
             return mesh;
         }
-        
+
         static Mesh CreateTileMesh(string name)
         {
             var path = "Assets/Resources/" + name + ".asset";
