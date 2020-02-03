@@ -129,7 +129,7 @@
             AddRelatedTile(tilesData, nextRightTileId, nextRightTileBounds);
 
             // Next up right tile
-            var nextUpRightTileX = currentTileX;
+            var nextUpRightTileX = currentTileX + 1;
             var nextUpRightTileZ = currentTileZ + 1;
             var nextUpRightTileId = string.Format("{0}_{1}", nextUpRightTileX, nextUpRightTileZ);
             var nextUpRightTileBounds = GetTileBounds(nextUpRightTileX, nextUpRightTileZ);
