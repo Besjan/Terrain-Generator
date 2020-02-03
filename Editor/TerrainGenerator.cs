@@ -74,40 +74,7 @@
             var patchLat = Convert.ToInt32(coordinates[1]) * 1000;
             Debug.Log(patchLon + "_" + patchLat);
 
-            // Get or create tiles data
-            var tile1X = (int)Math.Floor(1f * (patchLon - CenterTileLon) / TileResolution);
-            var tile1Z = (int)Math.Floor(1f * (patchLat - CenterTileLat) / TileResolution);
-            var tile1Id = string.Format("{0}_{1}", tile1X, tile1Z);
-
-            // Calculate lon and lat bounds
-            var tile1Bounds = new int[4];
-            tile1Bounds[0] = CenterTileLon + tile1X * (TileResolution - 1);
-            tile1Bounds[1] = tile1Bounds[0] + (TileResolution - 1);
-            tile1Bounds[2] = CenterTileLat + tile1Z * (TileResolution - 1);
-            tile1Bounds[3] = tile1Bounds[2] + (TileResolution - 1);
-
-            Debug.Log(tile1Bounds[0] + " | " + tile1Bounds[1] + " | " + tile1Bounds[2] + " | " + tile1Bounds[3]);
-
-            var tile2X = (int)Math.Floor(1f * (patchLon - CenterTileLon + (tile1X >= 0 ? 1 : -1) * PatchResolution) / TileResolution);
-            var tile2Z = (int)Math.Floor(1f * (patchLat - CenterTileLat + (tile1X >= 0 ? 1 : -1) * PatchResolution) / TileResolution);
-            var tile2Id = string.Format("{0}_{1}", tile2X, tile2Z);
-
-            Debug.Log(tile1Id);
-            Debug.Log(tile2Id);
-
-            var tilesData = new List<TileData>();
-            GetOrCreateRelatedTile(tilesData, tile1Id, tile1Bounds);
-            if (tile2Id != tile1Id)
-            {
-                // Calculate lon and lat limits
-                var tile2Bounds = new int[4];
-                tile2Bounds[0] = CenterTileLon + tile2X * (TileResolution - 1);
-                tile2Bounds[1] = tile2Bounds[0] + (TileResolution - 1);
-                tile2Bounds[2] = CenterTileLat + tile2Z * (TileResolution - 1);
-                tile2Bounds[3] = tile2Bounds[2] + (TileResolution - 1);
-
-                GetOrCreateRelatedTile(tilesData, tile2Id, tile2Bounds);
-            }
+            List<TileData> tilesData = GetRelatedTilesData(patchLon, patchLat);
 
             Debug.Log(tilesData.Count);
             Debug.Log("-----------------");
@@ -136,7 +103,83 @@
             }
         }
 
-        static void GetOrCreateRelatedTile(List<TileData> tiles, string tileId, int[] bounds)
+        private static List<TileData> GetRelatedTilesData(int patchLon, int patchLat)
+        {
+            var tilesData = new List<TileData>();
+
+            // Current tile
+            var currentTileX = (int)Math.Floor(1f * (patchLon - CenterTileLon) / TileResolution);
+            var currentTileZ = (int)Math.Floor(1f * (patchLat - CenterTileLat) / TileResolution);
+            var currentTileId = string.Format("{0}_{1}", currentTileX, currentTileZ);
+            int[] currentTileBounds = GetTileBounds(currentTileX, currentTileZ);
+            AddRelatedTile(tilesData, currentTileId, currentTileBounds);
+
+            // Next up tile
+            var nextUpTileX = currentTileX;
+            var nextUpTileZ = currentTileZ + 1;
+            var nextUpTileId = string.Format("{0}_{1}", nextUpTileX, nextUpTileZ);
+            var nextUpTileBounds = GetTileBounds(nextUpTileX, nextUpTileZ);
+            AddRelatedTile(tilesData, nextUpTileId, nextUpTileBounds);
+
+            // Next right tile
+            var nextRightTileX = currentTileX + 1;
+            var nextRightTileZ = currentTileZ;
+            var nextRightTileId = string.Format("{0}_{1}", nextRightTileX, nextRightTileZ);
+            var nextRightTileBounds = GetTileBounds(nextRightTileX, nextRightTileZ);
+            AddRelatedTile(tilesData, nextRightTileId, nextRightTileBounds);
+
+            // Next up right tile
+            var nextUpRightTileX = currentTileX;
+            var nextUpRightTileZ = currentTileZ + 1;
+            var nextUpRightTileId = string.Format("{0}_{1}", nextUpRightTileX, nextUpRightTileZ);
+            var nextUpRightTileBounds = GetTileBounds(nextUpRightTileX, nextUpRightTileZ);
+            AddRelatedTile(tilesData, nextUpRightTileId, nextUpRightTileBounds);
+
+            // Previous tile bottom
+            var previousBottomTileX = currentTileX;
+            var previousBottomTileZ = currentTileZ - 1;
+            var previousBottomTileId = string.Format("{0}_{1}", previousBottomTileX, previousBottomTileZ);
+            var previousBottomTileBounds = GetTileBounds(previousBottomTileX, previousBottomTileZ);
+            AddRelatedTile(tilesData, previousBottomTileId, previousBottomTileBounds, false);
+
+            // Previous tile left
+            var previousLeftTileX = currentTileX - 1;
+            var previousLeftTileZ = currentTileZ;
+            var previousLeftTileId = string.Format("{0}_{1}", previousLeftTileX, previousLeftTileZ);
+            var previousLeftTileBounds = GetTileBounds(previousLeftTileX, previousLeftTileZ);
+            AddRelatedTile(tilesData, previousLeftTileId, previousLeftTileBounds, false);
+
+            // Previous tile bottom left
+            var previousBottomLeftTileX = currentTileX - 1;
+            var previousBottomLeftTileZ = currentTileZ - 1;
+            var previousBottomLeftTileId = string.Format("{0}_{1}", previousBottomLeftTileX, previousBottomLeftTileZ);
+            var previousBottomLeftTileBounds = GetTileBounds(previousBottomLeftTileX, previousBottomLeftTileZ);
+            AddRelatedTile(tilesData, previousBottomLeftTileId, previousBottomLeftTileBounds, false);
+
+            Debug.Log(currentTileId);
+
+            Debug.Log(nextUpTileId);
+            Debug.Log(nextRightTileId);
+            Debug.Log(nextUpRightTileId);
+
+            Debug.Log(previousBottomTileId);
+            Debug.Log(previousLeftTileId);
+            Debug.Log(previousBottomLeftTileId);
+
+            return tilesData;
+        }
+
+        private static int[] GetTileBounds(int currentTileX, int currentTileZ)
+        {
+            var currentTileBounds = new int[4];
+            currentTileBounds[0] = CenterTileLon + currentTileX * (TileResolution - 1);
+            currentTileBounds[1] = currentTileBounds[0] + (TileResolution - 1);
+            currentTileBounds[2] = CenterTileLat + currentTileZ * (TileResolution - 1);
+            currentTileBounds[3] = currentTileBounds[2] + (TileResolution - 1);
+            return currentTileBounds;
+        }
+
+        static void AddRelatedTile(List<TileData> tiles, string tileId, int[] bounds, bool canAddNew = true)
         {
             var terrainData = Resources.Load<TerrainData>(TerrainDataPath + tileId);
             if (terrainData != null)
@@ -150,6 +193,9 @@
                 });
                 return;
             }
+
+            // In case of previous tiles
+            if (!canAddNew) return;
 
             tiles.Add(new TileData
             {
