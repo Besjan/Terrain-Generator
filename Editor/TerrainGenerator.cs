@@ -10,17 +10,17 @@
     public class TerrainGenerator
     {
         #region Properties
-        static string DataPath = "Assets/StreamingAssets/Test";
+        static string SourceDataPath = "Assets/StreamingAssets/Data";
+        static string CompletedDataPath = "Assets/StreamingAssets/Completed";
         static string TerrainDataPath = "TerrainData/";
-
-        static Transform Terrain;
-
-        static GameObject TileObjectPrefab;
 
         static int TileResolution = 4097;
 
         static int CenterTileLon = 392000;
         static int CenterTileLat = 5820000;
+
+        static Transform Terrain;
+        static GameObject TileObjectPrefab;
 
         struct Tile
         {
@@ -30,26 +30,24 @@
         }
         #endregion
 
-        static string[] Initialize(string terrainName)
+        [MenuItem("Cuku/Generate Terrain Data")]
+        static void GenerateTerrainData()
         {
-            //Terrain = new GameObject(terrainName).transform;
+            var filePath = Directory.GetFiles(SourceDataPath, "*.txt")[0];
 
-            TileObjectPrefab = Resources.Load<GameObject>("Tile");
+            if (string.IsNullOrEmpty(filePath))
+            {
+                Debug.Log("Finished!");
+            }
 
-            var dataPaths = Directory.GetFiles(DataPath, "*.txt");
-
-            return dataPaths;
+            CreateTilesData(filePath);
         }
 
-        [MenuItem("Cuku/Generate Terrain From DGM (1m grid)")]
-        static void GenerateTerrainFromDGM1()
+        [MenuItem("Cuku/Generate Terrain Tiles")]
+        static void GenerateTerrainTiles()
         {
-            var filePaths = Initialize("Terrain DGM (1m grid)");
-
-            for (int filePath = 0; filePath < filePaths.Length; filePath++)
-            {
-                CreateTilesData(filePaths[filePath]);
-            }
+            Terrain = new GameObject("Berlin Terrain").transform;
+            TileObjectPrefab = Resources.Load<GameObject>("Tile");
         }
 
         static void CreateTilesData(string filePath)
@@ -77,13 +75,28 @@
 
                     MoveTilePoint(lon, lat, height, tiles);
                 }
+
+                fs.Close();
+                fs.Dispose();
             }
 
-            foreach (var tile in tiles)
+            for (int i = 0; i < tiles.Count; i++)
             {
+                Tile tile = tiles[i];
                 var terrainData = CreateTerrainData(tile.Heights);
                 AssetDatabase.CreateAsset(terrainData, string.Format("Assets/Resources/{0}{1}.asset", TerrainDataPath, tile.Id));
+                AssetDatabase.Refresh();
+
+                tile.Heights = null;
+                terrainData = null;
             }
+
+            tiles = null;
+
+            var completedPath = Path.Combine(CompletedDataPath, Path.GetFileName(filePath));
+            File.Move(filePath, completedPath);
+
+            GenerateTerrainData();
         }
 
         private static List<Tile> GetRelatedTilesData(int patchLon, int patchLat)
