@@ -65,6 +65,7 @@
                 var tileTerrain = tile.GetComponent<Terrain>();
                 tileTerrain.groupingID = terrainGroup.GroupID;
                 tileTerrain.terrainData = terrainsData[i];
+                tile.GetComponent<TerrainCollider>().terrainData = terrainsData[i];
             }
         }
 
