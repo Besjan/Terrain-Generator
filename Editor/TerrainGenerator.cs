@@ -19,9 +19,6 @@
         static int CenterTileLon = 392000;
         static int CenterTileLat = 5820000;
 
-        static Transform Terrain;
-        static GameObject TileObjectPrefab;
-
         struct Tile
         {
             public string Id;
@@ -46,8 +43,29 @@
         [MenuItem("Cuku/Generate Terrain Tiles")]
         static void GenerateTerrainTiles()
         {
-            Terrain = new GameObject("Berlin Terrain").transform;
-            TileObjectPrefab = Resources.Load<GameObject>("Tile");
+            var terrain = new GameObject("Berlin Terrain", new Type[] { typeof(TerrainGroup) });
+            var tilePrefab = Resources.Load<GameObject>("TerrainTile");
+
+            var terrainsData = Resources.LoadAll<TerrainData>(TerrainDataPath);
+
+            var terrainGroup = terrain.GetComponent<TerrainGroup>();
+            terrainGroup.GroupID = 0;
+
+            for (int i = 0; i < terrainsData.Length; i++)
+            {
+                var id = terrainsData[i].name.Split('_');
+
+                var posX = Convert.ToInt32(id[0]) * (TileResolution - 1);
+                var posZ = Convert.ToInt32(id[1]) * (TileResolution - 1);
+
+                var tile = GameObject.Instantiate(tilePrefab, terrain.transform);
+                tile.name = string.Format("Terrain_({0}, 0.0, {1})", posX, posZ);
+                tile.transform.position = new Vector3(posX, 0, posZ);
+
+                var tileTerrain = tile.GetComponent<Terrain>();
+                tileTerrain.groupingID = terrainGroup.GroupID;
+                tileTerrain.terrainData = terrainsData[i];
+            }
         }
 
         static void CreateTilesData(string filePath)
@@ -111,6 +129,7 @@
                 for (int z = tileZ - 1; z < tileZ + 2; z++)
                 {
                     var tileId = string.Format("{0}_{1}", x, z);
+                    //var tileId = string.Format("Terrain_({0}.0, 0.0, {1}.0)_", x * TileResolution, z * TileResolution);
 
                     var bounds = new int[4];
                     bounds[0] = CenterTileLon + x * (TileResolution - 1);
@@ -169,12 +188,6 @@
             }
         }
 
-        /// <summary>
-        /// Creates terrain data from heights.
-        /// </summary>
-        /// <param name="heights">Terrain height percentages ranging from 0 to 1.</param>
-        /// <param name="heightSampleDistance">The horizontal/vertical distance between height samples.</param>
-        /// <returns>A TerrainData instance.</returns>
         static TerrainData CreateTerrainData(float[,] heights, float heightSampleDistance = 1)
         {
             var maxHeight = heights.Cast<float>().Max();
