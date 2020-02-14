@@ -1,5 +1,5 @@
 ## Features
-- Generate Unity Terrain from DEM / DGM (1m grid) point cloud data.
+- Generate Unity Terrain from DEM / DGM (1m grid) LiDAR point cloud data.
 
 ----
 
