@@ -1,4 +1,4 @@
-﻿namespace Cuku
+﻿namespace Cuku.Terrain
 {
     using System.Collections.Generic;
     using UnityEngine;
@@ -6,6 +6,8 @@
     using System.IO;
     using System;
     using System.Linq;
+    using MessagePack;
+    using Geo = Cuku.Geo;
 
     public class TerrainGenerator
     {
@@ -66,6 +68,35 @@
                 tileTerrain.groupingID = terrainGroup.GroupID;
                 tileTerrain.terrainData = terrainsData[i];
                 tile.GetComponent<TerrainCollider>().terrainData = terrainsData[i];
+            }
+        }
+
+        [MenuItem("Cuku/Terrain/Smooth Border")]
+        static void SmoothBorder()
+        {
+            var bytes = File.ReadAllBytes("Assets/StreamingAssets/Data/border.cuk");
+            var border = MessagePackSerializer.Deserialize<Geo.Feature>(bytes);
+
+            // Construct border
+            var borderObject = new GameObject("Border").transform;
+            var quadPrefab = Resources.Load<GameObject>("Quad");
+
+            for (int m = 0; m < border.Relations[0].Members.Length; m++)
+            {
+                var member = border.Relations[0].Members[m];
+                var lineObject = new GameObject(member.Id.ToString()).transform;
+                lineObject.SetParent(borderObject);
+
+                var line = border.Lines.FirstOrDefault(l => l.Id == member.Id);
+
+                for (int p = 0; p < line.Points.Length; p++)
+                {
+                    var point = line.Points[p];
+
+                    var quad = GameObject.Instantiate(quadPrefab, lineObject).transform;
+                    quad.name = point.Id.ToString();
+                    quad.position = new Vector3((float) point.X, 0, (float) point.Y);
+                }
             }
         }
 
