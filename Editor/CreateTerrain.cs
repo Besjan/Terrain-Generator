@@ -6,10 +6,8 @@
     using System.IO;
     using System;
     using System.Linq;
-    using MessagePack;
-    using Geo = Cuku.Geo;
 
-    public class TerrainGenerator
+    public class CreateTerrain
     {
         #region Properties
         static string SourceDataPath = "Assets/StreamingAssets/Data";
@@ -30,7 +28,7 @@
         #endregion
 
         [MenuItem("Cuku/Terrain/Generate Terrain Data")]
-        static void GenerateTerrainData()
+        static void CreateTerrainData()
         {
             var filePath = Directory.GetFiles(SourceDataPath, "*.txt")[0];
 
@@ -43,7 +41,7 @@
         }
 
         [MenuItem("Cuku/Terrain/Generate Terrain Tiles")]
-        static void GenerateTerrainTiles()
+        static void CreateTerrainTiles()
         {
             var terrain = new GameObject("Berlin Terrain", new Type[] { typeof(TerrainGroup) });
             var tilePrefab = Resources.Load<GameObject>("TerrainTile");
@@ -68,35 +66,6 @@
                 tileTerrain.groupingID = terrainGroup.GroupID;
                 tileTerrain.terrainData = terrainsData[i];
                 tile.GetComponent<TerrainCollider>().terrainData = terrainsData[i];
-            }
-        }
-
-        [MenuItem("Cuku/Terrain/Smooth Border")]
-        static void SmoothBorder()
-        {
-            var bytes = File.ReadAllBytes("Assets/StreamingAssets/Data/border.cuk");
-            var border = MessagePackSerializer.Deserialize<Geo.Feature>(bytes);
-
-            // Construct border
-            var borderObject = new GameObject("Border").transform;
-            var quadPrefab = Resources.Load<GameObject>("Quad");
-
-            for (int m = 0; m < border.Relations[0].Members.Length; m++)
-            {
-                var member = border.Relations[0].Members[m];
-                var lineObject = new GameObject(member.Id.ToString()).transform;
-                lineObject.SetParent(borderObject);
-
-                var line = border.Lines.FirstOrDefault(l => l.Id == member.Id);
-
-                for (int p = 0; p < line.Points.Length; p++)
-                {
-                    var point = line.Points[p];
-
-                    var quad = GameObject.Instantiate(quadPrefab, lineObject).transform;
-                    quad.name = point.Id.ToString();
-                    quad.position = new Vector3((float) point.X, 0, (float) point.Y);
-                }
             }
         }
 
@@ -146,7 +115,7 @@
             var completedPath = Path.Combine(CompletedDataPath, Path.GetFileName(filePath));
             File.Move(filePath, completedPath);
 
-            GenerateTerrainData();
+            CreateTerrainData();
         }
 
         private static List<Tile> GetRelatedTilesData(int patchLon, int patchLat)
@@ -275,87 +244,6 @@
             }
 
             return heights;
-        }
-
-        static Mesh CreateTileMesh(string name, float[,] heights)
-        {
-            // Create new mesh asset
-            var newMesh = new Mesh();
-            newMesh.name = name;
-            newMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-
-            var hRes = heights.GetUpperBound(0) - 1;
-            var vRes = heights.GetUpperBound(1) - 1;
-
-            var length = vRes - 1;
-            var width = hRes - 1;
-
-            #region Vertices		
-            Vector3[] vertices = new Vector3[hRes * vRes];
-            // Loop columns
-            for (int clm = 0; clm < hRes; clm++)
-            {
-                float vPos = ((float)clm / (hRes - 1)) * length;
-                // Loop rows
-                for (int row = 0; row < vRes; row++)
-                {
-                    float hPos = ((float)row / (vRes - 1)) * width;
-                    var id = row + clm * vRes;
-                    vertices[id] = new Vector3(hPos, heights[row, clm], vPos);
-                }
-            }
-            #endregion
-
-            #region Normals
-            Vector3[] normals = new Vector3[vertices.Length];
-            for (int n = 0; n < normals.Length; n++)
-            {
-                normals[n] = Vector3.up;
-            }
-            #endregion
-
-            #region UVs		
-            Vector2[] uvs = new Vector2[vertices.Length];
-            for (int v = 0; v < hRes; v++)
-            {
-                for (int u = 0; u < vRes; u++)
-                {
-                    uvs[u + v * vRes] = new Vector2((float)u / (vRes - 1), (float)v / (hRes - 1));
-                }
-            }
-            #endregion
-
-            #region Triangles
-            int nbFaces = (vRes - 1) * (hRes - 1);
-            int[] triangles = new int[nbFaces * 6];
-            int t = 0;
-            for (int face = 0; face < nbFaces; face++)
-            {
-                // Retrieve lower left corner from face ind
-                int i = face % (vRes - 1) + (face / (hRes - 1) * vRes);
-
-                triangles[t++] = i + vRes;
-                triangles[t++] = i + 1;
-                triangles[t++] = i;
-
-                triangles[t++] = i + vRes;
-                triangles[t++] = i + vRes + 1;
-                triangles[t++] = i + 1;
-            }
-            #endregion
-
-            newMesh.MarkDynamic();
-            newMesh.vertices = vertices;
-            newMesh.normals = normals;
-            newMesh.uv = uvs;
-            newMesh.triangles = triangles;
-
-            var meshObj = new GameObject(name);
-            var mf = meshObj.AddComponent<MeshFilter>();
-            mf.mesh = newMesh;
-            meshObj.AddComponent<MeshRenderer>();
-
-            return newMesh;
         }
     }
 }
