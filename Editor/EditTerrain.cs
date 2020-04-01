@@ -9,12 +9,13 @@
     using MessagePack;
     using UnityEngine.ProBuilder;
     using UnityEditor.ProBuilder;
-        
+    using Geo;
+
     public static class EditTerrain
     {
         static float boundaryHeight = 100.0f;
 
-        [MenuItem("Cuku/Lower Outer Terrain")]
+        [MenuItem("Cuku/Terrain/Lower Outer Terrain")]
         static void LowerOuterTerrain()
         {
             var bytes = File.ReadAllBytes("Assets/StreamingAssets/Data/border.cuk");
