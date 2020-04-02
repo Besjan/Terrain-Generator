@@ -13,96 +13,27 @@
 
     public static class EditTerrain
     {
-        static float boundaryHeight = 100.0f;
+        const string boundaryDataPath = "Assets/StreamingAssets/Data/boundary.cuk";
+        const float boundaryHeight = 100.0f;
 
-        [MenuItem("Cuku/Terrain/Lower Outer Terrain")]
+        [MenuItem("Cuku/Terrain/Lower Outer Terrains")]
         static void LowerOuterTerrain()
         {
-            var bytes = File.ReadAllBytes("Assets/StreamingAssets/Data/border.cuk");
-            var boundaryData = MessagePackSerializer.Deserialize<Feature>(bytes);
+            var boundaryPoints = GetBoundaryPoints();
+            var terrains = boundaryPoints.GetHitTerrains();
 
-            var members = boundaryData.Relations[0].Members;
-
-            var boundaryPoints = new List<Vector3>();
-            for (int m = 0; m < members.Length; m++)
-            {
-                var line = boundaryData.Lines.FirstOrDefault(l => l.Id == members[m].Id);
-                var points = line.Points.GetPointsWorldPositions();
-
-                // Reverse line points to match previous line's direction
-                if (boundaryPoints.Count != 0 && boundaryPoints.Last() != points[0])
-                {
-                    points = points.Reverse().ToArray();
-                }
-
-                boundaryPoints.AddRange(points);
-            }
-
-            boundaryPoints.Reverse(); // Normals face outside
-            //boundaryPoints = boundaryPoints.AddTileIntersectionPoints();
-
-            boundaryPoints.ToArray().LowerOuterTerrain();
-
-            //CreateWalls(boundaryPoints);
-            //boundaryPoints.ToArray().CreateWall("Boundary");
-        }
-
-        static void LowerOuterTerrain(this Vector3[] boundaryPoints)
-        {
-            var terrains = new List<Terrain>();
-
-            for (int i = 0; i < boundaryPoints.Count(); i++)
-            {
-                var terrain = boundaryPoints[i].GetTerrain();
-                if (terrains.Contains(terrain)) continue;
-                terrains.Add(terrain);
-            }
-            
             var lowerOuterTerrain = GameObject.FindObjectOfType<LowerOuterTerrain>();
             lowerOuterTerrain.Apply(boundaryPoints, terrains.ToArray());
         }
 
-        static List<Vector3> AddTileIntersectionPoints(this List<Vector3> points)
+        [MenuItem("Cuku/Terrain/Smooth Outer Terrains")]
+        static void SmoothOuterTerrain()
         {
-            var allPoints = new List<Vector3>();
-            allPoints.Add(points[0]);
-
-            for (int i = 1; i < points.Count; i++)
-            {
-                var point1 = points[i - 1];
-                var point2 = points[i];
-
-                if (point1.GetTerrainName() != point2.GetTerrainName())
-                {
-                    allPoints.Add(GetTileIntersectionPoint(point1, point2));
-                }
-
-                allPoints.Add(point2);
-            }
-
-            return allPoints;
+            var boundaryPoints = GetBoundaryPoints(true);
+            var terrains = boundaryPoints.GetHitTerrains();
         }
 
-        static void CreateWalls(this List<Vector3> boundaryPoints)
-        {
-            List<int> idsPerTile = new List<int>();
-            boundaryPoints = boundaryPoints.AddTileIntersectionPoints(ref idsPerTile);
-
-            var parent = new GameObject("Boundary").transform;
-
-            for (int i = 0; i < idsPerTile.Count() - 1; i++)
-            {
-                var count = idsPerTile[i + 1] - idsPerTile[i] + 1;
-                var points = boundaryPoints.GetRange(idsPerTile[i], count);
-                points.ToArray().CreateWall(i.ToString(), parent);
-            }
-
-            List<Vector3> lastWall = new List<Vector3>();
-            lastWall.AddRange(boundaryPoints.GetRange(idsPerTile.Last(), boundaryPoints.Count() - idsPerTile.Last()));
-            lastWall.AddRange(boundaryPoints.GetRange(0, idsPerTile[0] + 1));
-            lastWall.ToArray().CreateWall((idsPerTile.Count() - 1).ToString(), parent);
-        }
-
+        [MenuItem("Cuku/Terrain/Create Boundary")]
         static void CreateWall(this Vector3[] basePoints, string name, Transform parent = null)
         {
             // Create vertices
@@ -144,18 +75,51 @@
             wall.transform.SetParent(parent, true);
         }
 
+        #region Points
+        private static Vector3[] GetBoundaryPoints(bool addTileIntersectionPoints = false)
+        {
+            var bytes = File.ReadAllBytes(boundaryDataPath);
+            var boundaryData = MessagePackSerializer.Deserialize<Feature>(bytes);
+
+            var members = boundaryData.Relations[0].Members;
+
+            var boundaryPoints = new List<Vector3>();
+            for (int m = 0; m < members.Length; m++)
+            {
+                var line = boundaryData.Lines.FirstOrDefault(l => l.Id == members[m].Id);
+                var points = line.Points.GetPointsWorldPositions();
+
+                // Reverse line points to match previous line's direction
+                if (boundaryPoints.Count != 0 && boundaryPoints.Last() != points[0])
+                {
+                    points = points.Reverse().ToArray();
+                }
+
+                boundaryPoints.AddRange(points);
+            }
+
+            boundaryPoints.Reverse(); // Normals face outside
+
+            if (addTileIntersectionPoints)
+            {
+                boundaryPoints = boundaryPoints.AddTileIntersectionPoints();
+            }
+
+            return boundaryPoints.ToArray();
+        }
+
         static Vector3[] GetPointsWorldPositions(this Point[] points)
         {
             var positions = new Vector3[points.Length];
             for (int p = 0; p < points.Length; p++)
             {
                 positions[p] = new Vector3((float)points[p].X, 0, (float)points[p].Y);
-                positions[p].y = positions[p].GetTerrainHeight();
+                positions[p].y = positions[p].GetHitTerrainHeight();
             }
             return positions;
         }
 
-        static List<Vector3> AddTileIntersectionPoints(this List<Vector3> points, ref List<int> idsPerTile)
+        static List<Vector3> AddTileIntersectionPoints(this List<Vector3> points)
         {
             var allPoints = new List<Vector3>();
             allPoints.Add(points[0]);
@@ -165,10 +129,9 @@
                 var point1 = points[i - 1];
                 var point2 = points[i];
 
-                if (point1.GetTerrainName() != point2.GetTerrainName())
+                if (point1.GetHitTerrainName() != point2.GetHitTerrainName())
                 {
                     allPoints.Add(GetTileIntersectionPoint(point1, point2));
-                    idsPerTile.Add(allPoints.Count() - 1);
                 }
 
                 allPoints.Add(point2);
@@ -179,7 +142,7 @@
 
         static Vector3 GetTileIntersectionPoint(Vector3 point1, Vector3 point2)
         {
-            var terrain = point1.GetTerrainHit().transform.GetComponent<Terrain>();
+            var terrain = point1.GetTerrainRaycastHit().transform.GetComponent<Terrain>();
             var terrainAnglePoints = terrain.GetTerrainAnglePoints();
 
             var A1 = new Vector2(point1.x, point1.z);
@@ -201,7 +164,7 @@
                 }
             }
 
-            return intersections[closest].GetTerrainHitPosition();
+            return intersections[closest].GetHitTerrainPosition();
         }
 
         /// <summary>
@@ -247,21 +210,36 @@
 
             return new Vector2[] { tp1, tp2, tp3, tp4 };
         }
+        #endregion
 
-        static Terrain GetTerrain(this Vector3 position)
+        #region Terrain
+        static Terrain[] GetHitTerrains(this Vector3[] boundaryPoints)
         {
-            return position.GetTerrainHit().transform.GetComponent<Terrain>();
+            var terrains = new List<Terrain>();
+            for (int i = 0; i < boundaryPoints.Count(); i++)
+            {
+                var terrain = boundaryPoints[i].GetHitTerrain();
+                if (terrains.Contains(terrain)) continue;
+                terrains.Add(terrain);
+            }
+
+            return terrains.ToArray();
         }
 
-        static string GetTerrainName(this Vector3 position)
+        static Terrain GetHitTerrain(this Vector3 position)
         {
-            return position.GetTerrainHit().transform.name;
+            return position.GetTerrainRaycastHit().transform.GetComponent<Terrain>();
         }
 
-        static Vector3 GetTerrainHitPosition(this Vector2 position)
+        static string GetHitTerrainName(this Vector3 position)
+        {
+            return position.GetTerrainRaycastHit().transform.name;
+        }
+
+        static Vector3 GetHitTerrainPosition(this Vector2 position)
         {
             Vector3 hitPosition = new Vector3(position.x, 0, position.y);
-            hitPosition.y = hitPosition.GetTerrainHit().point.y;
+            hitPosition.y = hitPosition.GetTerrainRaycastHit().point.y;
 
             //var c = GameObject.CreatePrimitive(PrimitiveType.Cube);            
             //c.transform.position = hitPosition;
@@ -269,12 +247,12 @@
             return hitPosition;
         }
 
-        static float GetTerrainHeight(this Vector3 position)
+        static float GetHitTerrainHeight(this Vector3 position)
         {
-            return position.GetTerrainHit().point.y;
+            return position.GetTerrainRaycastHit().point.y;
         }
 
-        static RaycastHit GetTerrainHit(this Vector3 origin)
+        static RaycastHit GetTerrainRaycastHit(this Vector3 origin)
         {
             origin.y = 10000;
 
@@ -291,6 +269,7 @@
             Debug.LogError("No Terrain was Hit!" + origin);
 
             return hit;
-        }
+        } 
+        #endregion
     }
 }
