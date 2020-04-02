@@ -2,6 +2,7 @@
 {
     using AX;
     using AXGeometry;
+	using Sirenix.OdinInspector;
 	using System.Collections;
 	using System.Linq;
     using UnityEngine;
@@ -9,26 +10,46 @@
     [RequireComponent(typeof(AXModel))]
     public class LowerOuterTerrain : MonoBehaviour
     {
-        public void Apply(Vector3 tilePosition, int tileSize, Vector3[] boundaryPoints, Terrain[] terrains)
+        public void Apply(Vector3[] boundaryPoints, Terrain[] terrains)
         {
-            StartCoroutine(LowerOuterTerrains(tilePosition, tileSize, boundaryPoints, terrains));
+            StartCoroutine(LowerOuterTerrains(boundaryPoints, terrains));
         }
 
-        IEnumerator LowerOuterTerrains(Vector3 tilePosition, int tileSize, Vector3[] boundaryPoints, Terrain[] terrains)
+        [Button]
+        public void ResetAXModel()
+        {
+            var axModel = GetComponent<AXModel>();
+
+            var boundary = axModel.parametricObjects.FirstOrDefault(p => p.Name == "Boundary");
+            boundary.curve.Clear();
+
+            var lowerOuterTerrain = axModel.parametricObjects.FirstOrDefault(p => p.Name == "LowerOuterTerrain");
+            lowerOuterTerrain.terrain = null;
+
+            axModel.build();
+        }
+
+        IEnumerator LowerOuterTerrains(Vector3[] boundaryPoints, Terrain[] terrains)
         {
             foreach (var terrain in terrains)
             {
-                yield return StartCoroutine(Apply(tilePosition, tileSize, boundaryPoints, terrain));
+                yield return StartCoroutine(Apply(boundaryPoints, terrain));
             }
+
+            // Reset Archimatix
+            ResetAXModel();
         }
 
-        IEnumerator Apply(Vector3 tilePosition, int tileSize, Vector3[] boundaryPoints, Terrain terrain)
+        IEnumerator Apply(Vector3[] boundaryPoints, Terrain terrain)
         {
              var axModel = GetComponent<AXModel>();
 
             // Terrain Tile
 
             var tile = axModel.parametricObjects.FirstOrDefault(p => p.Name == "Tile");
+            var tilePosition = terrain.GetPosition() - new Vector3(-1, 0, -1);
+            var tileSize = terrain.terrainData.heightmapResolution + 1;
+
             tile.setParameterValueByName("Trans_X", tilePosition.x);
             tile.setParameterValueByName("Trans_Y", tilePosition.z);
             tile.setParameterValueByName("size", tileSize);
