@@ -39,6 +39,7 @@
             }
 
             boundaryPoints.Reverse(); // Normals face outside
+            //boundaryPoints = boundaryPoints.AddTileIntersectionPoints();
 
             boundaryPoints.ToArray().LowerOuterTerrain();
 
@@ -59,6 +60,27 @@
             
             var lowerOuterTerrain = GameObject.FindObjectOfType<LowerOuterTerrain>();
             lowerOuterTerrain.Apply(boundaryPoints, terrains.ToArray());
+        }
+
+        static List<Vector3> AddTileIntersectionPoints(this List<Vector3> points)
+        {
+            var allPoints = new List<Vector3>();
+            allPoints.Add(points[0]);
+
+            for (int i = 1; i < points.Count; i++)
+            {
+                var point1 = points[i - 1];
+                var point2 = points[i];
+
+                if (point1.GetTerrainName() != point2.GetTerrainName())
+                {
+                    allPoints.Add(GetTileIntersectionPoint(point1, point2));
+                }
+
+                allPoints.Add(point2);
+            }
+
+            return allPoints;
         }
 
         static void CreateWalls(this List<Vector3> boundaryPoints)
