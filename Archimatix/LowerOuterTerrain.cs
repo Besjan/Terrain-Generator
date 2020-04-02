@@ -2,54 +2,56 @@
 {
     using AX;
     using AXGeometry;
-    using System.Linq;
+	using System.Collections;
+	using System.Linq;
     using UnityEngine;
 
     [RequireComponent(typeof(AXModel))]
     public class LowerOuterTerrain : MonoBehaviour
     {
-        public void SetTilePosition(Vector3 position)
+        public void Apply(Vector3 tilePosition, int tileSize, Vector3[] boundaryPoints, Terrain[] terrains)
         {
-            var axModel = GetComponent<AXModel>();
-            var tile = axModel.parametricObjects.FirstOrDefault(p => p.Name == "Tile");
-            tile.setParameterValueByName("Trans_X", position.x);
-            tile.setParameterValueByName("Trans_Y", position.z);
-
-            axModel.autobuild();
+            StartCoroutine(LowerOuterTerrains(tilePosition, tileSize, boundaryPoints, terrains));
         }
 
-        public void SetTileSize(int resolution)
+        IEnumerator LowerOuterTerrains(Vector3 tilePosition, int tileSize, Vector3[] boundaryPoints, Terrain[] terrains)
         {
-            var axModel = GetComponent<AXModel>();
-            var tile = axModel.parametricObjects.FirstOrDefault(p => p.Name == "Tile");
-            tile.setParameterValueByName("size", resolution);
-
-            axModel.autobuild();
+            foreach (var terrain in terrains)
+            {
+                yield return StartCoroutine(Apply(tilePosition, tileSize, boundaryPoints, terrain));
+            }
         }
 
-        public void SetBoundaryPoints(Vector3[] points)
+        IEnumerator Apply(Vector3 tilePosition, int tileSize, Vector3[] boundaryPoints, Terrain terrain)
         {
-            var axModel = GetComponent<AXModel>();
+             var axModel = GetComponent<AXModel>();
+
+            // Terrain Tile
+
+            var tile = axModel.parametricObjects.FirstOrDefault(p => p.Name == "Tile");
+            tile.setParameterValueByName("Trans_X", tilePosition.x);
+            tile.setParameterValueByName("Trans_Y", tilePosition.z);
+            tile.setParameterValueByName("size", tileSize);
+
+            // Boundary
+
             var boundary = axModel.parametricObjects.FirstOrDefault(p => p.Name == "Boundary");
-
             boundary.curve.Clear();
-
-            foreach (var point in points)
+            foreach (var point in boundaryPoints)
             {
                 boundary.curve.Add(new CurveControlPoint2D(point.x, point.z));
             }
 
-            axModel.autobuild();
-        }
+            // Lower Terrain
 
-        public void SetTerrain(Terrain terrain)
-        {
-            var axModel = GetComponent<AXModel>();
             var lowerOuterTerrain = axModel.parametricObjects.FirstOrDefault(p => p.Name == "LowerOuterTerrain");
-
             lowerOuterTerrain.terrain = terrain;
 
-            axModel.autobuild();
+            yield return new WaitForSeconds(1);
+
+            axModel.build();
+
+            yield return new WaitForSeconds(1);
         }
     }
 }

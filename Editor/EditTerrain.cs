@@ -49,19 +49,17 @@
             //boundaryPoints.ToArray().CreateWall("Boundary");
         }
 
-        static void LowerOuterTerrain(this Vector3[] points)
+        static void LowerOuterTerrain(this Vector3[] boundaryPoints)
         {
-            var axModel = GameObject.FindObjectOfType<LowerOuterTerrain>();
-            axModel.SetBoundaryPoints(points);
+            var terrain = boundaryPoints[0].GetTerrain();
+            var tilePosition = terrain.GetPosition() - new Vector3(-1, 0, -1);
+            var tileSize = terrain.terrainData.heightmapResolution + 1;
+            
+            var lowerOuterTerrain = GameObject.FindObjectOfType<LowerOuterTerrain>();
+            lowerOuterTerrain.Apply(tilePosition, tileSize, boundaryPoints, terrain);
 
             //axModel.SetBoundaryPoints(new Vector3[0]);
             //var terrain = GameObject.Find("Terrain_(0, 0.0, 0)").GetComponent<Terrain>();
-            
-            var terrain = points[0].GetTerrain();
-            axModel.SetTilePosition(terrain.GetPosition());
-            axModel.SetTileSize(terrain.terrainData.heightmapResolution);
-
-            axModel.SetTerrain(terrain);
         }
 
         static void CreateWalls(this List<Vector3> boundaryPoints)
