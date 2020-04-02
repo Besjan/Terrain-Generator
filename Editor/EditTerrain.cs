@@ -42,12 +42,29 @@
             //var firstPoint = new Point[] { boundaryData.Lines.FirstOrDefault(l => l.Id == members[0].Id).Points[0] }.GetPointsWorldPositions()[0];
             //boundaryPoints.Add(firstPoint);
             boundaryPoints.Reverse(); // Normals face outside
-            CreateWalls(boundaryPoints);
 
-            boundaryPoints.ToArray().CreateWall("Boundary");
+            boundaryPoints.ToArray().LowerOuterTerrain();
+
+            //CreateWalls(boundaryPoints);
+            //boundaryPoints.ToArray().CreateWall("Boundary");
         }
 
-        static void CreateWalls(List<Vector3> boundaryPoints)
+        static void LowerOuterTerrain(this Vector3[] points)
+        {
+            var axModel = GameObject.FindObjectOfType<LowerOuterTerrain>();
+            axModel.SetBoundaryPoints(points);
+
+            //axModel.SetBoundaryPoints(new Vector3[0]);
+            //var terrain = GameObject.Find("Terrain_(0, 0.0, 0)").GetComponent<Terrain>();
+            
+            var terrain = points[0].GetTerrain();
+            axModel.SetTilePosition(terrain.GetPosition());
+            axModel.SetTileSize(terrain.terrainData.heightmapResolution);
+
+            axModel.SetTerrain(terrain);
+        }
+
+        static void CreateWalls(this List<Vector3> boundaryPoints)
         {
             List<int> idsPerTile = new List<int>();
             boundaryPoints = boundaryPoints.AddTileIntersectionPoints(ref idsPerTile);
@@ -210,6 +227,11 @@
             var tp4 = new Vector2(tp1.x + tileResolution, tp1.y + tileResolution);
 
             return new Vector2[] { tp1, tp2, tp3, tp4 };
+        }
+
+        static Terrain GetTerrain(this Vector3 position)
+        {
+            return position.GetTerrainHit().transform.GetComponent<Terrain>();
         }
 
         static string GetTerrainName(this Vector3 position)
