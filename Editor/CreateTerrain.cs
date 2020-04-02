@@ -27,7 +27,7 @@
         }
         #endregion
 
-        [MenuItem("Cuku/Terrain/Generate Terrain Data")]
+        [MenuItem("Cuku/Terrain/Create Terrain Data")]
         static void CreateTerrainData()
         {
             var filePath = Directory.GetFiles(SourceDataPath, "*.txt")[0];
@@ -40,7 +40,7 @@
             CreateTilesData(filePath);
         }
 
-        [MenuItem("Cuku/Terrain/Generate Terrain Tiles")]
+        [MenuItem("Cuku/Terrain/Create Terrain Tiles")]
         static void CreateTerrainTiles()
         {
             var terrain = new GameObject("Berlin Terrain", new Type[] { typeof(TerrainGroup) });

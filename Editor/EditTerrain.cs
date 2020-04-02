@@ -16,33 +16,18 @@
         const string boundaryDataPath = "Assets/StreamingAssets/Data/boundary.cuk";
         const float boundaryHeight = 100.0f;
 
-        [MenuItem("Cuku/Terrain/Lower Outer Terrains")]
-        static void LowerOuterTerrain()
+        [MenuItem("Cuku/Terrain/Create Boundary")]
+        static void CreateBoundaryMesh()
         {
             var boundaryPoints = GetBoundaryPoints();
-            var terrains = boundaryPoints.GetHitTerrains();
 
-            var lowerOuterTerrain = GameObject.FindObjectOfType<LowerOuterTerrain>();
-            lowerOuterTerrain.Apply(boundaryPoints, terrains.ToArray());
-        }
-
-        [MenuItem("Cuku/Terrain/Smooth Outer Terrains")]
-        static void SmoothOuterTerrain()
-        {
-            var boundaryPoints = GetBoundaryPoints(true);
-            var terrains = boundaryPoints.GetHitTerrains();
-        }
-
-        [MenuItem("Cuku/Terrain/Create Boundary")]
-        static void CreateWall(this Vector3[] basePoints, string name, Transform parent = null)
-        {
             // Create vertices
             var wallVertices = new List<Vector3>();
 
-            for (int p = 0; p < basePoints.Length - 1; p++)
+            for (int p = 0; p < boundaryPoints.Length - 1; p++)
             {
-                var point0 = basePoints[p];
-                var point1 = basePoints[p + 1];
+                var point0 = boundaryPoints[p];
+                var point1 = boundaryPoints[p + 1];
 
                 wallVertices.Add(point0);
                 wallVertices.Add(point1);
@@ -71,8 +56,25 @@
 
             wall.SetMaterial(faces, Resources.Load<Material>("2Sided"));
 
-            wall.gameObject.name = wall.name = name;
-            wall.transform.SetParent(parent, true);
+            wall.gameObject.name = wall.name = "Boundary";
+            wall.transform.SetParent(null, true);
+        }
+
+        [MenuItem("Cuku/Terrain/Lower Outer Terrains")]
+        static void LowerOuterTerrain()
+        {
+            var boundaryPoints = GetBoundaryPoints();
+            var terrains = boundaryPoints.GetHitTerrains();
+
+            var lowerOuterTerrain = GameObject.FindObjectOfType<LowerOuterTerrain>();
+            lowerOuterTerrain.Apply(boundaryPoints, terrains.ToArray());
+        }
+
+        [MenuItem("Cuku/Terrain/Smooth Outer Terrains")]
+        static void SmoothOuterTerrain()
+        {
+            var boundaryPoints = GetBoundaryPoints(true);
+            var terrains = boundaryPoints.GetHitTerrains();
         }
 
         #region Points
