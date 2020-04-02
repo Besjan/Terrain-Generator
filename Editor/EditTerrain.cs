@@ -17,7 +17,7 @@
         const float boundaryHeight = 100.0f;
 
         [MenuItem("Cuku/Terrain/Create Boundary")]
-        static void CreateBoundaryMesh()
+        static void CreateBoundary()
         {
             var boundaryPoints = GetBoundaryPoints();
 
@@ -73,12 +73,12 @@
         [MenuItem("Cuku/Terrain/Smooth Outer Terrains")]
         static void SmoothOuterTerrain()
         {
-            var boundaryPoints = GetBoundaryPoints(true);
+            var boundaryPoints = GetBoundaryPoints();
             var terrains = boundaryPoints.GetHitTerrains();
         }
 
         #region Points
-        private static Vector3[] GetBoundaryPoints(bool addTileIntersectionPoints = false)
+        private static Vector3[] GetBoundaryPoints()
         {
             var bytes = File.ReadAllBytes(boundaryDataPath);
             var boundaryData = MessagePackSerializer.Deserialize<Feature>(bytes);
@@ -101,11 +101,7 @@
             }
 
             boundaryPoints.Reverse(); // Normals face outside
-
-            if (addTileIntersectionPoints)
-            {
-                boundaryPoints = boundaryPoints.AddTileIntersectionPoints();
-            }
+            boundaryPoints = boundaryPoints.AddTileIntersectionPoints();
 
             return boundaryPoints.ToArray();
         }

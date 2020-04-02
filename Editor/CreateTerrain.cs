@@ -118,7 +118,7 @@
             CreateTerrainData();
         }
 
-        private static List<Tile> GetRelatedTilesData(int patchLon, int patchLat)
+        static List<Tile> GetRelatedTilesData(int patchLon, int patchLat)
         {
             var tiles = new List<Tile>();
 
