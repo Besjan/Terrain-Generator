@@ -91,6 +91,8 @@
 
                 for (int iterations = 0; iterations < smoothInterations; iterations++)
                 {
+                    var smoothAmountMeter = smoothAmount * ((iterations + 1) * 3 / smoothInterations);
+
                     int[,] alreadySmoothed = new int[rows, columns];
 
                     for (int row = 0; row < rows; row++)
@@ -136,7 +138,7 @@
 
                             if (averageHeightMeter <= 0) continue;
 
-                            var smoothedHeight = (averageHeightMeter - smoothAmount) / terrainSize.y;
+                            var smoothedHeight = (averageHeightMeter - smoothAmountMeter) / terrainSize.y;
 
                             heights[row, column] = smoothedHeight;
 
