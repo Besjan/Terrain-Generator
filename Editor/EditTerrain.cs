@@ -16,6 +16,10 @@
         const string boundaryDataPath = "Assets/StreamingAssets/Data/boundary.cuk";
         const float boundaryHeight = 100.0f;
 
+        const float smoothInterations = 1;
+        const float smoothAmount = 1.0f;
+        const int neighbourStep = 1;
+
         [MenuItem("Cuku/Terrain/Create Boundary")]
         static void CreateBoundary()
         {
@@ -75,6 +79,76 @@
         {
             var boundaryPoints = GetBoundaryPoints();
             var terrains = boundaryPoints.GetHitTerrains();
+            var ts = new Terrain[] { terrains[0] };
+
+            foreach (var terrain in ts)
+            {
+                var terrainSize = terrain.terrainData.size;
+
+                var heights = terrain.terrainData.GetHeights(0, 0, (int)terrainSize.x + 1, (int)terrainSize.z + 1);
+                int rows = heights.GetUpperBound(0);
+                int columns = heights.GetUpperBound(1);
+
+                for (int iterations = 0; iterations < smoothInterations; iterations++)
+                {
+                    int[,] alreadySmoothed = new int[rows, columns];
+
+                    for (int row = 0; row < rows; row++)
+                    {
+                        for (int column = 0; column < columns; column++)
+                        {
+                            var heightPercent = heights[row, column];
+                            if (heightPercent != 0) continue;
+
+                            // Calculate average height
+
+                            var minRow = UnityEngine.ProBuilder.Math.Clamp(row - neighbourStep, 0, rows - 1);
+                            var maxRow = UnityEngine.ProBuilder.Math.Clamp(row + neighbourStep, 0, rows - 1);
+                            var minColumn = UnityEngine.ProBuilder.Math.Clamp(column - neighbourStep, 0, column - 1);
+                            var maxColumn = UnityEngine.ProBuilder.Math.Clamp(column + neighbourStep, 0, column - 1);
+
+                            var neighbourHeights = new List<float>();
+
+                            for (int r = minRow; r <= maxRow; r++)
+                            {
+                                for (int c = minColumn; c <= maxColumn; c++)
+                                {
+                                    if (alreadySmoothed[r, c] == 1) continue;
+
+                                    var height = heights[r, c];
+                                    if (height != 0)
+                                    {
+                                        neighbourHeights.Add(height);
+                                    }
+                                }
+                            }
+
+                            if (neighbourHeights.Count() == 0) continue;
+
+                            float heightSum = 0;
+                            foreach (var height in neighbourHeights)
+                            {
+                                heightSum += height;
+                            }
+
+                            var averageHeight = heightSum / neighbourHeights.Count();
+                            var averageHeightMeter = terrainSize.y * averageHeight;
+
+                            if (averageHeightMeter <= 0) continue;
+
+                            var smoothedHeight = (averageHeightMeter - smoothAmount) / terrainSize.y;
+
+                            heights[row, column] = smoothedHeight;
+
+                            alreadySmoothed[row, column] = 1;
+                        }
+                    }
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+
+                return;
+            }
         }
 
         #region Points
