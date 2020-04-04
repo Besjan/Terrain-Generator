@@ -10,14 +10,15 @@
     using UnityEngine.ProBuilder;
     using UnityEditor.ProBuilder;
     using Geo;
+	using Dreamteck.Splines;
 
-    public static class EditTerrain
+	public static class EditTerrain
     {
         const string boundaryDataPath = "Assets/StreamingAssets/Data/boundary.cuk";
         const float boundaryHeight = 100.0f;
 
-        const float smoothInterations = 10;
-        const float smoothAmount = 1.0f;
+        const float smoothDistance = 10.0f;
+        const float smoothAmount = 5.0f;
         const int neighbourStep = 1;
 
         [MenuItem("Cuku/Terrain/Create Boundary")]
@@ -68,6 +69,65 @@
         static void LowerOuterTerrain()
         {
             var boundaryPoints = GetBoundaryPoints();
+            var boundaryPoints2D = boundaryPoints.ProjectToXZPlane();
+            var boundaryCurve = boundaryPoints.GetBoundaryCurve();
+
+            var terrains = boundaryPoints.GetHitTerrains();
+            var ts = new Terrain[] { terrains[1] };
+
+            foreach (var terrain in ts)
+            {
+                var terrainSize = terrain.terrainData.size;
+                var heightmapResolution = terrain.terrainData.heightmapResolution;
+                var terrainPosition = terrain.GetPosition();
+                var heights = terrain.terrainData.GetHeights(0, 0, heightmapResolution, heightmapResolution);
+                int rows = heights.GetUpperBound(0);
+                int columns = heights.GetUpperBound(1);
+
+                for (int i = 0; i < rows; i++)
+                {
+                    for (int j = 0; j < columns; j++)
+                    {
+                        var height = heights[i, j];
+
+                        float posX = terrainSize.x * i / heightmapResolution + terrainPosition.x;
+                        float posY = terrainSize.y * height;
+                        float posZ = terrainSize.z * j / heightmapResolution + terrainPosition.z;
+
+                        var pointPosition2D = new Vector2(posX, posZ);
+
+                        if (pointPosition2D.IsInside(boundaryPoints2D)) continue;
+
+                        var pointPosition3D = new Vector3(posX, posY, posZ);
+                        var positionOnCurve3D = boundaryCurve.EvaluatePosition(boundaryCurve.Project(pointPosition3D));
+                        var positionOnCurve2D = new Vector2(positionOnCurve3D.x, positionOnCurve3D.z);
+
+                        var distanceFromCurve = Vector2.Distance(pointPosition2D, positionOnCurve2D);
+
+                        if (distanceFromCurve > smoothDistance)
+                        {
+                            heights[j, i] = 0;
+                            continue;
+                        }
+
+                        var smoothAmountMeter = distanceFromCurve * smoothAmount / smoothDistance;
+                        smoothAmountMeter = Mathf.Clamp(smoothAmountMeter, 0, smoothAmount);
+
+                        var smoothedHeight = (positionOnCurve3D.y - smoothAmountMeter) / terrainSize.y;
+                        smoothedHeight = Mathf.Clamp(smoothedHeight, 0, 1);
+
+                        heights[j, i] = smoothedHeight;
+                    }
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+
+        //[MenuItem("Cuku/Terrain/Lower Outer Terrains")]
+        static void LowerOuterTerrain1()
+        {
+            var boundaryPoints = GetBoundaryPoints();
             var terrains = boundaryPoints.GetHitTerrains();
 
             var lowerOuterTerrain = GameObject.FindObjectOfType<LowerOuterTerrain>();
@@ -89,9 +149,9 @@
                 int rows = heights.GetUpperBound(0);
                 int columns = heights.GetUpperBound(1);
 
-                for (int iterations = 0; iterations < smoothInterations; iterations++)
+                for (int iterations = 0; iterations < smoothDistance; iterations++)
                 {
-                    var smoothAmountMeter = smoothAmount * ((iterations + 1) * 3 / smoothInterations);
+                    var smoothAmountMeter = smoothAmount * ((iterations + 1) * 3 / smoothDistance);
 
                     int[,] alreadySmoothed = new int[rows, columns];
 
@@ -154,7 +214,7 @@
         }
 
         #region Points
-        private static Vector3[] GetBoundaryPoints()
+        static Vector3[] GetBoundaryPoints()
         {
             var bytes = File.ReadAllBytes(boundaryDataPath);
             var boundaryData = MessagePackSerializer.Deserialize<Feature>(bytes);
@@ -176,10 +236,26 @@
                 boundaryPoints.AddRange(points);
             }
 
+            boundaryPoints.Add(boundaryPoints[0]);
             boundaryPoints.Reverse(); // Normals face outside
             boundaryPoints = boundaryPoints.AddTileIntersectionPoints();
 
             return boundaryPoints.ToArray();
+        }
+
+        static Spline GetBoundaryCurve(this Vector3[] boundaryPoints)
+        {
+            SplinePoint[] points = new SplinePoint[boundaryPoints.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = new SplinePoint(boundaryPoints[i]);
+            }
+
+            Spline boundaryCurve = new Spline(Spline.Type.Linear);
+            boundaryCurve.points = points;
+            boundaryCurve.Close();
+
+            return boundaryCurve;
         }
 
         static Vector3[] GetPointsWorldPositions(this Point[] points)
@@ -283,6 +359,31 @@
             var tp4 = new Vector2(tp1.x + tileResolution, tp1.y + tileResolution);
 
             return new Vector2[] { tp1, tp2, tp3, tp4 };
+        }
+
+        static bool IsInside(this Vector2 point, Vector2[] points)
+        {
+            var j = points.Length - 1;
+            var inside = false;
+            for (int i = 0; i < points.Length; j = i++)
+            {
+                var pi = points[i];
+                var pj = points[j];
+                if (((pi.y <= point.y && point.y < pj.y) || (pj.y <= point.y && point.y < pi.y)) &&
+                    (point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y) + pi.x))
+                    inside = !inside;
+            }
+            return inside;
+        }
+
+        static Vector2[] ProjectToXZPlane(this Vector3[] points3D)
+        {
+            var points = new Vector2[points3D.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = new Vector2(points3D[i].x, points3D[i].z);
+            }
+            return points;
         }
         #endregion
 
