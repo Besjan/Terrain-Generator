@@ -16,7 +16,7 @@
         const string boundaryDataPath = "Assets/StreamingAssets/Data/boundary.cuk";
         const float boundaryHeight = 100.0f;
 
-        const float smoothInterations = 1;
+        const float smoothInterations = 10;
         const float smoothAmount = 1.0f;
         const int neighbourStep = 1;
 
@@ -104,8 +104,8 @@
 
                             var minRow = UnityEngine.ProBuilder.Math.Clamp(row - neighbourStep, 0, rows - 1);
                             var maxRow = UnityEngine.ProBuilder.Math.Clamp(row + neighbourStep, 0, rows - 1);
-                            var minColumn = UnityEngine.ProBuilder.Math.Clamp(column - neighbourStep, 0, column - 1);
-                            var maxColumn = UnityEngine.ProBuilder.Math.Clamp(column + neighbourStep, 0, column - 1);
+                            var minColumn = UnityEngine.ProBuilder.Math.Clamp(column - neighbourStep, 0, columns - 1);
+                            var maxColumn = UnityEngine.ProBuilder.Math.Clamp(column + neighbourStep, 0, columns - 1);
 
                             var neighbourHeights = new List<float>();
 
