@@ -35,6 +35,8 @@
         [MenuItem("Cuku/Terrain/Lower Outer Terrains")]
         static void LowerOuterTerrain()
         {
+            var startTime = DateTime.Now;
+
             var boundaryPoints = GetBoundaryPoints();
             var boundaryPoints2D = boundaryPoints.ProjectToXZPlane();
 
@@ -46,18 +48,15 @@
                 var boundaryCurve = keyPair.Value.GetCurve();
 
                 keyPair.Value.CreateWall(terrain.name);
-                return;
 
                 var terrainSize = terrain.terrainData.size;
                 var heightmapResolution = terrain.terrainData.heightmapResolution;
                 var terrainPosition = terrain.GetPosition();
                 var heights = terrain.terrainData.GetHeights(0, 0, heightmapResolution, heightmapResolution);
-                int rows = heights.GetUpperBound(0);
-                int columns = heights.GetUpperBound(1);
 
-                for (int i = 0; i < rows; i++)
+                for (int i = 0; i < heightmapResolution; i++)
                 {
-                    for (int j = 0; j < columns; j++)
+                    for (int j = 0; j < heightmapResolution; j++)
                     {
                         var height = heights[i, j];
 
@@ -92,6 +91,8 @@
                 }
 
                 terrain.terrainData.SetHeights(0, 0, heights);
+
+                Debug.Log(DateTime.Now.Subtract(startTime).TotalMinutes);
 
                 return;
             }
