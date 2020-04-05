@@ -16,16 +16,62 @@
     {
         const string boundaryDataPath = "Assets/StreamingAssets/Data/boundary.cuk";
         const float boundaryHeight = 100.0f;
+        const float boundaryResolution = 1.5f;
 
         const int terrainLimitOffset = 2;
 
         const float smoothDistance = 10.0f;
         const float smoothAmount = 5.0f;
 
+
         [MenuItem("Cuku/Terrain/Create Boundary")]
         static void CreateBoundary()
         {
             var boundaryPoints = GetBoundaryPoints();
+
+            // Create vertices
+            var wallVertices = new List<Vector3>();
+
+            for (int p = 0; p < boundaryPoints.Length - 1; p++)
+            {
+                var point0 = boundaryPoints[p];
+                var point1 = boundaryPoints[p + 1];
+
+                wallVertices.Add(point0);
+                wallVertices.Add(point1);
+                wallVertices.Add(new Vector3(point0.x, point0.y + boundaryHeight, point0.z));
+                wallVertices.Add(new Vector3(point1.x, point1.y + boundaryHeight, point1.z));
+            }
+
+            var sharedVertices = new List<SharedVertex>();
+
+            // Create faces
+            var faces = new List<Face>();
+            for (int f = 0; f < wallVertices.Count - 3; f += 4)
+            {
+                var faceVertices = new int[] { f, f + 1, f + 2, f + 1, f + 3, f + 2 };
+                faces.Add(new Face(faceVertices));
+            }
+
+            var wall = ProBuilderMesh.Create(wallVertices, faces);
+
+            Normals.CalculateNormals(wall);
+            Normals.CalculateTangents(wall);
+            Smoothing.ApplySmoothingGroups(wall, faces, 30);
+            wall.ToMesh();
+            wall.Refresh();
+            EditorMeshUtility.Optimize(wall);
+
+            wall.SetMaterial(faces, Resources.Load<Material>("2Sided"));
+
+            wall.gameObject.name = wall.name = "Boundary";
+            wall.transform.SetParent(null, true);
+        }
+
+        [MenuItem("Cuku/Terrain/Create Boundary High Res")]
+        static void CreateBoundaryHighRes()
+        {
+            var boundaryPoints = GetBoundaryPoints(true);
 
             // Create vertices
             var wallVertices = new List<Vector3>();
@@ -146,7 +192,7 @@
         }
 
         #region Points
-        static Vector3[] GetBoundaryPoints()
+        static Vector3[] GetBoundaryPoints(bool increaseResolution = false)
         {
             var bytes = File.ReadAllBytes(boundaryDataPath);
             var boundaryData = MessagePackSerializer.Deserialize<Feature>(bytes);
@@ -169,6 +215,11 @@
             }
 
             boundaryPoints.Reverse(); // Normals face outside
+
+            if (increaseResolution)
+            {
+                boundaryPoints = boundaryPoints.IncreaseResolution();
+            }
 
             return boundaryPoints.AddTileIntersectionPoints();
         }
@@ -197,6 +248,36 @@
                 positions[p].y = positions[p].GetHitTerrainHeight();
             }
             return positions;
+        }
+
+        static List<Vector3> IncreaseResolution(this List<Vector3> points)
+        {
+            var highRestPoints = new List<Vector3>();
+
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                var point1 = new Vector2(points[i].x, points[i].z);
+                var point2 = new Vector2(points[i + 1].x, points[i + 1].z);
+                var distance = Vector2.Distance(point1, point2);
+
+                if (distance < boundaryResolution)
+                {
+                    highRestPoints.Add(points[i]);
+                    continue;
+                }
+
+                int pointCount = (int)(distance / boundaryResolution);
+
+                for (int p = 1; p < pointCount; p++)
+                {
+                    var t = p * boundaryResolution / distance;
+                    var point = Vector2.Lerp(point1, point2, t).GetHitTerrainPosition();
+                    highRestPoints.Add(point);
+                }
+            }
+            highRestPoints.Add(points.Last());
+
+            return highRestPoints;
         }
 
         static Vector3[] AddTileIntersectionPoints(this List<Vector3> points)
