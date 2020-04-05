@@ -18,7 +18,7 @@
         const float boundaryHeight = 100.0f;
         const float boundaryResolution = 1.5f;
 
-        const int terrainLimitOffset = 2;
+        const int curveOffset = 2;
 
         const float smoothDistance = 10.0f;
         const float smoothAmount = 5.0f;
@@ -29,87 +29,7 @@
         {
             var boundaryPoints = GetBoundaryPoints();
 
-            // Create vertices
-            var wallVertices = new List<Vector3>();
-
-            for (int p = 0; p < boundaryPoints.Length - 1; p++)
-            {
-                var point0 = boundaryPoints[p];
-                var point1 = boundaryPoints[p + 1];
-
-                wallVertices.Add(point0);
-                wallVertices.Add(point1);
-                wallVertices.Add(new Vector3(point0.x, point0.y + boundaryHeight, point0.z));
-                wallVertices.Add(new Vector3(point1.x, point1.y + boundaryHeight, point1.z));
-            }
-
-            var sharedVertices = new List<SharedVertex>();
-
-            // Create faces
-            var faces = new List<Face>();
-            for (int f = 0; f < wallVertices.Count - 3; f += 4)
-            {
-                var faceVertices = new int[] { f, f + 1, f + 2, f + 1, f + 3, f + 2 };
-                faces.Add(new Face(faceVertices));
-            }
-
-            var wall = ProBuilderMesh.Create(wallVertices, faces);
-
-            Normals.CalculateNormals(wall);
-            Normals.CalculateTangents(wall);
-            Smoothing.ApplySmoothingGroups(wall, faces, 30);
-            wall.ToMesh();
-            wall.Refresh();
-            EditorMeshUtility.Optimize(wall);
-
-            wall.SetMaterial(faces, Resources.Load<Material>("2Sided"));
-
-            wall.gameObject.name = wall.name = "Boundary";
-            wall.transform.SetParent(null, true);
-        }
-
-        [MenuItem("Cuku/Terrain/Create Boundary High Res")]
-        static void CreateBoundaryHighRes()
-        {
-            var boundaryPoints = GetBoundaryPoints(true);
-
-            // Create vertices
-            var wallVertices = new List<Vector3>();
-
-            for (int p = 0; p < boundaryPoints.Length - 1; p++)
-            {
-                var point0 = boundaryPoints[p];
-                var point1 = boundaryPoints[p + 1];
-
-                wallVertices.Add(point0);
-                wallVertices.Add(point1);
-                wallVertices.Add(new Vector3(point0.x, point0.y + boundaryHeight, point0.z));
-                wallVertices.Add(new Vector3(point1.x, point1.y + boundaryHeight, point1.z));
-            }
-
-            var sharedVertices = new List<SharedVertex>();
-
-            // Create faces
-            var faces = new List<Face>();
-            for (int f = 0; f < wallVertices.Count - 3; f += 4)
-            {
-                var faceVertices = new int[] { f, f + 1, f + 2, f + 1, f + 3, f + 2 };
-                faces.Add(new Face(faceVertices));
-            }
-
-            var wall = ProBuilderMesh.Create(wallVertices, faces);
-
-            Normals.CalculateNormals(wall);
-            Normals.CalculateTangents(wall);
-            Smoothing.ApplySmoothingGroups(wall, faces, 30);
-            wall.ToMesh();
-            wall.Refresh();
-            EditorMeshUtility.Optimize(wall);
-
-            wall.SetMaterial(faces, Resources.Load<Material>("2Sided"));
-
-            wall.gameObject.name = wall.name = "Boundary";
-            wall.transform.SetParent(null, true);
+            boundaryPoints.CreateWall("Boundary");
         }
 
         [MenuItem("Cuku/Terrain/Lower Outer Terrains")]
@@ -117,33 +37,17 @@
         {
             var boundaryPoints = GetBoundaryPoints();
             var boundaryPoints2D = boundaryPoints.ProjectToXZPlane();
-            var boundaryCurve = boundaryPoints.GetBoundaryCurve();
 
-            var hitTerrains = boundaryPoints.GetHitTerrains();
+            var hitTerrains = boundaryPoints.GetHitTerrainsAndBoundaryPoints();
 
-            Dictionary<Terrain, double[]> terrains = new Dictionary<Terrain, double[]>();
-            foreach (var hitTerrain in hitTerrains)
+            foreach (var keyPair in hitTerrains)
             {
-                var limitProjections = new double[] { boundaryCurve.Project(hitTerrain.Value[0]), boundaryCurve.Project(hitTerrain.Value[1]) };
+                var terrain = keyPair.Key;
+                var boundaryCurve = keyPair.Value.GetCurve();
 
-                terrains.Add(hitTerrain.Key, limitProjections);
+                keyPair.Value.CreateWall(terrain.name);
+                return;
 
-                continue;
-
-                var c1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                c1.transform.position = boundaryCurve.EvaluatePosition(limitProjections[0]);
-                c1.name = hitTerrain.Key.name + "_1";
-
-                var c2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                c2.transform.position = boundaryCurve.EvaluatePosition(limitProjections[1]);
-                c2.name = hitTerrain.Key.name + "_2";
-            }
-
-            return;
-            var ts = new Terrain[] { hitTerrains.Keys.First() };
-
-            foreach (var terrain in ts)
-            {
                 var terrainSize = terrain.terrainData.size;
                 var heightmapResolution = terrain.terrainData.heightmapResolution;
                 var terrainPosition = terrain.GetPosition();
@@ -188,11 +92,90 @@
                 }
 
                 terrain.terrainData.SetHeights(0, 0, heights);
+
+                return;
             }
         }
 
+        static Dictionary<Terrain, Vector3[]> GetHitTerrainsAndBoundaryPoints(this Vector3[] boundaryPoints)
+        {
+            Dictionary<Terrain, int[]> terrainLimitsIds = new Dictionary<Terrain, int[]>();
+            for (int i = 0; i < boundaryPoints.Length - 1; i++)
+            {
+                var terrain = boundaryPoints[i].GetHitTerrain();
+                if (!terrainLimitsIds.ContainsKey(terrain))
+                {
+                    terrainLimitsIds.Add(terrain, new int[] { i, i });
+                    continue;
+                };
+
+                var limits = terrainLimitsIds[terrain];
+                limits[0] = Mathf.Min(limits[0], i);
+                limits[1] = Mathf.Max(limits[1], i);
+
+                terrainLimitsIds[terrain] = limits;
+            }
+
+            Dictionary<Terrain, Vector3[]> terrains = new Dictionary<Terrain, Vector3[]>();
+            foreach (var terrain in terrainLimitsIds)
+            {
+                var limits = terrain.Value;
+                var startId = limits[0] - curveOffset;
+                var endId = limits[1] + curveOffset;
+
+                var points = new List<Vector3>();
+                if (limits[0] == 0) points.AddRange(boundaryPoints.Skip(boundaryPoints.Count() - curveOffset));
+                points.AddRange(boundaryPoints.Skip(startId).Take(endId - startId));
+
+                terrains.Add(terrain.Key, points.ToArray().IncreaseResolution());
+            }
+
+            return terrains;
+        }
+
+        private static void CreateWall(this Vector3[] boundaryPoints, string name)
+        {
+            // Create vertices
+            var wallVertices = new List<Vector3>();
+
+            for (int p = 0; p < boundaryPoints.Length - 1; p++)
+            {
+                var point0 = boundaryPoints[p];
+                var point1 = boundaryPoints[p + 1];
+
+                wallVertices.Add(point0);
+                wallVertices.Add(point1);
+                wallVertices.Add(new Vector3(point0.x, point0.y + boundaryHeight, point0.z));
+                wallVertices.Add(new Vector3(point1.x, point1.y + boundaryHeight, point1.z));
+            }
+
+            var sharedVertices = new List<SharedVertex>();
+
+            // Create faces
+            var faces = new List<Face>();
+            for (int f = 0; f < wallVertices.Count - 3; f += 4)
+            {
+                var faceVertices = new int[] { f, f + 1, f + 2, f + 1, f + 3, f + 2 };
+                faces.Add(new Face(faceVertices));
+            }
+
+            var wall = ProBuilderMesh.Create(wallVertices, faces);
+
+            Normals.CalculateNormals(wall);
+            Normals.CalculateTangents(wall);
+            Smoothing.ApplySmoothingGroups(wall, faces, 30);
+            wall.ToMesh();
+            wall.Refresh();
+            EditorMeshUtility.Optimize(wall);
+
+            wall.SetMaterial(faces, Resources.Load<Material>("2Sided"));
+
+            wall.gameObject.name = wall.name = name;
+            wall.transform.SetParent(null, true);
+        }
+
         #region Points
-        static Vector3[] GetBoundaryPoints(bool increaseResolution = false)
+        static Vector3[] GetBoundaryPoints()
         {
             var bytes = File.ReadAllBytes(boundaryDataPath);
             var boundaryData = MessagePackSerializer.Deserialize<Feature>(bytes);
@@ -216,27 +199,22 @@
 
             boundaryPoints.Reverse(); // Normals face outside
 
-            if (increaseResolution)
-            {
-                boundaryPoints = boundaryPoints.IncreaseResolution();
-            }
-
             return boundaryPoints.AddTileIntersectionPoints();
         }
 
-        static Spline GetBoundaryCurve(this Vector3[] boundaryPoints)
+        static Spline GetCurve(this Vector3[] points)
         {
-            SplinePoint[] points = new SplinePoint[boundaryPoints.Length];
-            for (int i = 0; i < points.Length; i++)
+            SplinePoint[] splinePoints = new SplinePoint[points.Length];
+            for (int i = 0; i < splinePoints.Length; i++)
             {
-                points[i] = new SplinePoint(boundaryPoints[i]);
+                splinePoints[i] = new SplinePoint(points[i]);
             }
 
-            Spline boundaryCurve = new Spline(Spline.Type.Linear);
-            boundaryCurve.points = points;
-            boundaryCurve.Close();
+            Spline curve = new Spline(Spline.Type.Linear);
+            curve.points = splinePoints;
+            curve.Close();
 
-            return boundaryCurve;
+            return curve;
         }
 
         static Vector3[] GetPointsWorldPositions(this Point[] points)
@@ -250,34 +228,32 @@
             return positions;
         }
 
-        static List<Vector3> IncreaseResolution(this List<Vector3> points)
+        static Vector3[] IncreaseResolution(this Vector3[] points)
         {
             var highRestPoints = new List<Vector3>();
 
-            for (int i = 0; i < points.Count - 1; i++)
+            for (int i = 0; i < points.Length - 1; i++)
             {
                 var point1 = new Vector2(points[i].x, points[i].z);
                 var point2 = new Vector2(points[i + 1].x, points[i + 1].z);
                 var distance = Vector2.Distance(point1, point2);
 
-                if (distance < boundaryResolution)
-                {
-                    highRestPoints.Add(points[i]);
-                    continue;
-                }
+                highRestPoints.Add(points[i]);
 
-                int pointCount = (int)(distance / boundaryResolution);
+                if (distance < boundaryResolution) continue;
 
-                for (int p = 1; p < pointCount; p++)
+                var step = boundaryResolution / distance;
+                var t = step;
+                while (t < 1)
                 {
-                    var t = p * boundaryResolution / distance;
                     var point = Vector2.Lerp(point1, point2, t).GetHitTerrainPosition();
                     highRestPoints.Add(point);
+                    t += step;
                 }
             }
             highRestPoints.Add(points.Last());
 
-            return highRestPoints;
+            return highRestPoints.ToArray();
         }
 
         static Vector3[] AddTileIntersectionPoints(this List<Vector3> points)
@@ -421,44 +397,6 @@
         #endregion
 
         #region Terrain
-        static Dictionary<Terrain, Vector3[]> GetHitTerrains(this Vector3[] boundaryPoints)
-        {
-            Dictionary<Terrain, int[]> terrainLimitsIds = new Dictionary<Terrain, int[]>();
-            for (int i = 0; i < boundaryPoints.Length - 1; i++)
-            {
-                var terrain = boundaryPoints[i].GetHitTerrain();
-                if (!terrainLimitsIds.ContainsKey(terrain))
-                {
-                    terrainLimitsIds.Add(terrain, new int[] { i, i });
-                    continue;
-                };
-
-                var limits = terrainLimitsIds[terrain];
-                limits[0] = Mathf.Min(limits[0], i);
-                limits[1] = Mathf.Max(limits[1], i);
-
-                terrainLimitsIds[terrain] = limits;
-            }
-
-            Dictionary<Terrain, Vector3[]> terrains = new Dictionary<Terrain, Vector3[]>();
-            foreach (var terrain in terrainLimitsIds)
-            {
-                // Offset terrain limits
-                var limits = terrain.Value;
-
-                var minId = limits[0] - terrainLimitOffset;
-                if (minId < 0) minId = boundaryPoints.Length - terrainLimitOffset;
-
-                var maxId = limits[1] + terrainLimitOffset;
-                if (maxId >= boundaryPoints.Length) maxId = terrainLimitOffset;
-
-                var limitPoints = new Vector3[] { boundaryPoints[minId], boundaryPoints[maxId] };
-                terrains.Add(terrain.Key, limitPoints);
-            }
-
-            return terrains;
-        }
-
         static Terrain GetHitTerrain(this Vector3 position)
         {
             return position.GetTerrainRaycastHit().transform.GetComponent<Terrain>();
