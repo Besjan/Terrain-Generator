@@ -17,9 +17,10 @@
         const string boundaryDataPath = "Assets/StreamingAssets/Data/boundary.cuk";
         const float boundaryHeight = 100.0f;
 
+        const int terrainLimitOffset = 2;
+
         const float smoothDistance = 10.0f;
         const float smoothAmount = 5.0f;
-        const int neighbourStep = 1;
 
         [MenuItem("Cuku/Terrain/Create Boundary")]
         static void CreateBoundary()
@@ -72,8 +73,28 @@
             var boundaryPoints2D = boundaryPoints.ProjectToXZPlane();
             var boundaryCurve = boundaryPoints.GetBoundaryCurve();
 
-            var terrains = boundaryPoints.GetHitTerrains();
-            var ts = new Terrain[] { terrains.Keys.First() };
+            var hitTerrains = boundaryPoints.GetHitTerrains();
+
+            Dictionary<Terrain, double[]> terrains = new Dictionary<Terrain, double[]>();
+            foreach (var hitTerrain in hitTerrains)
+            {
+                var limitProjections = new double[] { boundaryCurve.Project(hitTerrain.Value[0]), boundaryCurve.Project(hitTerrain.Value[1]) };
+
+                terrains.Add(hitTerrain.Key, limitProjections);
+
+                continue;
+
+                var c1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                c1.transform.position = boundaryCurve.EvaluatePosition(limitProjections[0]);
+                c1.name = hitTerrain.Key.name + "_1";
+
+                var c2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                c2.transform.position = boundaryCurve.EvaluatePosition(limitProjections[1]);
+                c2.name = hitTerrain.Key.name + "_2";
+            }
+
+            return;
+            var ts = new Terrain[] { hitTerrains.Keys.First() };
 
             foreach (var terrain in ts)
             {
@@ -123,95 +144,6 @@
                 terrain.terrainData.SetHeights(0, 0, heights);
             }
         }
-
-        ////[MenuItem("Cuku/Terrain/Lower Outer Terrains")]
-        //static void LowerOuterTerrain1()
-        //{
-        //    var boundaryPoints = GetBoundaryPoints();
-        //    var terrains = boundaryPoints.GetHitTerrains();
-
-        //    var lowerOuterTerrain = GameObject.FindObjectOfType<LowerOuterTerrain>();
-        //    lowerOuterTerrain.Apply(boundaryPoints, terrains.ToArray());
-        //}
-
-        //[MenuItem("Cuku/Terrain/Smooth Outer Terrains")]
-        //static void SmoothOuterTerrain()
-        //{
-        //    var boundaryPoints = GetBoundaryPoints();
-        //    var terrains = boundaryPoints.GetHitTerrains();
-        //    var ts = new Terrain[] { terrains[0] };
-
-        //    foreach (var terrain in ts)
-        //    {
-        //        var terrainSize = terrain.terrainData.size;
-
-        //        var heights = terrain.terrainData.GetHeights(0, 0, (int)terrainSize.x + 1, (int)terrainSize.z + 1);
-        //        int rows = heights.GetUpperBound(0);
-        //        int columns = heights.GetUpperBound(1);
-
-        //        for (int iterations = 0; iterations < smoothDistance; iterations++)
-        //        {
-        //            var smoothAmountMeter = smoothAmount * ((iterations + 1) * 3 / smoothDistance);
-
-        //            int[,] alreadySmoothed = new int[rows, columns];
-
-        //            for (int row = 0; row < rows; row++)
-        //            {
-        //                for (int column = 0; column < columns; column++)
-        //                {
-        //                    var heightPercent = heights[row, column];
-        //                    if (heightPercent != 0) continue;
-
-        //                    // Calculate average height
-
-        //                    var minRow = UnityEngine.ProBuilder.Math.Clamp(row - neighbourStep, 0, rows - 1);
-        //                    var maxRow = UnityEngine.ProBuilder.Math.Clamp(row + neighbourStep, 0, rows - 1);
-        //                    var minColumn = UnityEngine.ProBuilder.Math.Clamp(column - neighbourStep, 0, columns - 1);
-        //                    var maxColumn = UnityEngine.ProBuilder.Math.Clamp(column + neighbourStep, 0, columns - 1);
-
-        //                    var neighbourHeights = new List<float>();
-
-        //                    for (int r = minRow; r <= maxRow; r++)
-        //                    {
-        //                        for (int c = minColumn; c <= maxColumn; c++)
-        //                        {
-        //                            if (alreadySmoothed[r, c] == 1) continue;
-
-        //                            var height = heights[r, c];
-        //                            if (height != 0)
-        //                            {
-        //                                neighbourHeights.Add(height);
-        //                            }
-        //                        }
-        //                    }
-
-        //                    if (neighbourHeights.Count() == 0) continue;
-
-        //                    float heightSum = 0;
-        //                    foreach (var height in neighbourHeights)
-        //                    {
-        //                        heightSum += height;
-        //                    }
-
-        //                    var averageHeight = heightSum / neighbourHeights.Count();
-        //                    var averageHeightMeter = terrainSize.y * averageHeight;
-
-        //                    if (averageHeightMeter <= 0) continue;
-
-        //                    var smoothedHeight = (averageHeightMeter - smoothAmountMeter) / terrainSize.y;
-
-        //                    heights[row, column] = smoothedHeight;
-
-        //                    alreadySmoothed[row, column] = 1;
-        //                }
-        //            }
-        //        }
-
-        //        terrain.terrainData.SetHeights(0, 0, heights);
-
-        //        return;
-        //    }
-        //}
 
         #region Points
         static Vector3[] GetBoundaryPoints()
@@ -408,22 +340,40 @@
         #endregion
 
         #region Terrain
-        static Dictionary<Terrain, Vector2> GetHitTerrains(this Vector3[] boundaryPoints)
+        static Dictionary<Terrain, Vector3[]> GetHitTerrains(this Vector3[] boundaryPoints)
         {
-            Dictionary<Terrain, int[]> terrainsLimits = new Dictionary<Terrain, int[]>();
-            for (int i = 0; i < boundaryPoints.Count(); i++)
+            Dictionary<Terrain, int[]> terrainLimitsIds = new Dictionary<Terrain, int[]>();
+            for (int i = 0; i < boundaryPoints.Length - 1; i++)
             {
                 var terrain = boundaryPoints[i].GetHitTerrain();
-                if (!terrainsLimits.ContainsKey(terrain))
+                if (!terrainLimitsIds.ContainsKey(terrain))
                 {
-                    terrainsLimits.Add(terrain, new int[] { i, i });
+                    terrainLimitsIds.Add(terrain, new int[] { i, i });
+                    continue;
                 };
 
-                var limits = terrainsLimits[terrain];
-                //limits[0] = 
-                //terrainsLimits[terrain] = 
+                var limits = terrainLimitsIds[terrain];
+                limits[0] = Mathf.Min(limits[0], i);
+                limits[1] = Mathf.Max(limits[1], i);
+
+                terrainLimitsIds[terrain] = limits;
             }
-            Dictionary<Terrain, Vector2> terrains = new Dictionary<Terrain, Vector2>();
+
+            Dictionary<Terrain, Vector3[]> terrains = new Dictionary<Terrain, Vector3[]>();
+            foreach (var terrain in terrainLimitsIds)
+            {
+                // Offset terrain limits
+                var limits = terrain.Value;
+
+                var minId = limits[0] - terrainLimitOffset;
+                if (minId < 0) minId = boundaryPoints.Length - terrainLimitOffset;
+
+                var maxId = limits[1] + terrainLimitOffset;
+                if (maxId >= boundaryPoints.Length) maxId = terrainLimitOffset;
+
+                var limitPoints = new Vector3[] { boundaryPoints[minId], boundaryPoints[maxId] };
+                terrains.Add(terrain.Key, limitPoints);
+            }
 
             return terrains;
         }
