@@ -42,6 +42,8 @@
 
             var hitTerrains = boundaryPoints.GetHitTerrainsAndBoundaryPoints();
 
+            var smoothFactor = smoothAmount / smoothDistance;
+
             foreach (var keyPair in hitTerrains)
             {
                 var terrain = keyPair.Key;
@@ -80,13 +82,13 @@
                             continue;
                         }
 
-                        var smoothAmountMeter = distanceFromCurve * smoothAmount / smoothDistance;
+                        var smoothAmountMeter = distanceFromCurve * smoothFactor;
                         smoothAmountMeter = Mathf.Clamp(smoothAmountMeter, 0, smoothAmount);
 
-                        var smoothedHeight = (positionOnCurve3D.y - smoothAmountMeter) / terrainSize.y;
-                        smoothedHeight = Mathf.Clamp(smoothedHeight, 0, 1);
+                        var smoothAmountPercent = (positionOnCurve3D.y - smoothAmountMeter) / terrainSize.y;
+                        smoothAmountPercent = Mathf.Clamp(smoothAmountPercent, 0, 1);
 
-                        heights[j, i] = smoothedHeight;
+                        heights[j, i] = smoothAmountPercent;
                     }
                 }
 
@@ -213,7 +215,10 @@
 
             Spline curve = new Spline(Spline.Type.Linear);
             curve.points = splinePoints;
-            curve.Close();
+
+            //var sp = new GameObject("SP").AddComponent<SplineComputer>();
+            //sp.SetPoints(splinePoints);
+            //sp.type = Spline.Type.Linear;
 
             return curve;
         }
