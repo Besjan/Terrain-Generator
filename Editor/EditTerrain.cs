@@ -16,12 +16,11 @@
     {
         const string boundaryDataPath = "Assets/StreamingAssets/Data/boundary.cuk";
         const float boundaryHeight = 100.0f;
-        const float boundaryResolution = 1.5f;
+        const float boundaryResolution = 1.0f;
 
         const int curveOffset = 2;
 
-        const float smoothDistance = 10.0f;
-        const float smoothAmount = 5.0f;
+        const float smoothSize = 10.0f;
 
 
         [MenuItem("Cuku/Terrain/Create Boundary")]
@@ -42,14 +41,12 @@
 
             var hitTerrains = boundaryPoints.GetHitTerrainsAndBoundaryPoints();
 
-            var smoothFactor = smoothAmount / smoothDistance;
+            var smoothFactor = 1 / Mathf.Sqrt(smoothSize);
 
             foreach (var keyPair in hitTerrains)
             {
                 var terrain = keyPair.Key;
-                var boundaryCurve = keyPair.Value.GetCurve();
-
-                keyPair.Value.CreateWall(terrain.name);
+                var boundaryCurve = keyPair.Value.GetCurve(true);
 
                 var terrainSize = terrain.terrainData.size;
                 var heightmapResolution = terrain.terrainData.heightmapResolution;
@@ -60,38 +57,32 @@
                 {
                     for (int j = 0; j < heightmapResolution; j++)
                     {
-                        var height = heights[i, j];
-
                         float posX = terrainSize.x * i / heightmapResolution + terrainPosition.x;
-                        float posY = terrainSize.y * height;
                         float posZ = terrainSize.z * j / heightmapResolution + terrainPosition.z;
 
                         var pointPosition2D = new Vector2(posX, posZ);
 
                         if (pointPosition2D.IsInside(boundaryPoints2D)) continue;
 
-                        var pointPosition3D = new Vector3(posX, posY, posZ);
-                        var positionOnCurve3D = boundaryCurve.EvaluatePosition(boundaryCurve.Project(pointPosition3D));
-                        var positionOnCurve2D = new Vector2(positionOnCurve3D.x, positionOnCurve3D.z);
+                        var positionOnXZPlane = new Vector3(posX, 0, posZ);
+                        var positionOnCurve = boundaryCurve.EvaluatePosition(boundaryCurve.Project(positionOnXZPlane));
+                        var distanceFromCurve = Vector3.Distance(positionOnXZPlane, positionOnCurve);
 
-                        var distanceFromCurve = Vector2.Distance(pointPosition2D, positionOnCurve2D);
-
-                        if (distanceFromCurve > smoothDistance)
+                        if (distanceFromCurve > smoothSize)
                         {
                             heights[j, i] = 0;
                             continue;
                         }
 
-                        var smoothAmountMeter = distanceFromCurve * smoothFactor;
-                        smoothAmountMeter = Mathf.Clamp(smoothAmountMeter, 0, smoothAmount);
-
-                        var smoothAmountPercent = (positionOnCurve3D.y - smoothAmountMeter) / terrainSize.y;
-                        smoothAmountPercent = Mathf.Clamp(smoothAmountPercent, 0, 1);
+                        var smoothAmountMeter = Mathf.Pow(distanceFromCurve * smoothFactor, 2);
+                        smoothAmountMeter = Mathf.Clamp(smoothAmountMeter, 0, smoothSize);
+                        var smoothAmountPercent = (positionOnCurve.GetHitTerrainHeight() - smoothAmountMeter) / terrainSize.y;
 
                         heights[j, i] = smoothAmountPercent;
                     }
                 }
 
+                Undo.RecordObject(terrain.terrainData, "Smooth heights");
                 terrain.terrainData.SetHeights(0, 0, heights);
 
                 Debug.Log(DateTime.Now.Subtract(startTime).TotalMinutes);
@@ -130,7 +121,7 @@
                 if (limits[0] == 0) points.AddRange(boundaryPoints.Skip(boundaryPoints.Count() - curveOffset));
                 points.AddRange(boundaryPoints.Skip(startId).Take(endId - startId));
 
-                terrains.Add(terrain.Key, points.ToArray().IncreaseResolution());
+                terrains.Add(terrain.Key, points.ToArray());
             }
 
             return terrains;
@@ -205,20 +196,18 @@
             return boundaryPoints.AddTileIntersectionPoints();
         }
 
-        static Spline GetCurve(this Vector3[] points)
+        static Spline GetCurve(this Vector3[] points, bool XZPlane = false)
         {
             SplinePoint[] splinePoints = new SplinePoint[points.Length];
             for (int i = 0; i < splinePoints.Length; i++)
             {
-                splinePoints[i] = new SplinePoint(points[i]);
+                var point = points[i];
+                if (XZPlane) point.y = 0;
+                splinePoints[i] = new SplinePoint(point);
             }
 
-            Spline curve = new Spline(Spline.Type.Linear);
+            Spline curve = new Spline(Spline.Type.BSpline);
             curve.points = splinePoints;
-
-            //var sp = new GameObject("SP").AddComponent<SplineComputer>();
-            //sp.SetPoints(splinePoints);
-            //sp.type = Spline.Type.Linear;
 
             return curve;
         }
