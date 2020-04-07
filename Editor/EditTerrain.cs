@@ -75,7 +75,6 @@
                         }
 
                         var smoothAmountMeter = Mathf.Pow(distanceFromCurve * smoothFactor, 2);
-                        smoothAmountMeter = Mathf.Clamp(smoothAmountMeter, 0, smoothSize);
                         var smoothAmountPercent = (positionOnCurve.GetHitTerrainHeight() - smoothAmountMeter) / terrainSize.y;
 
                         heights[j, i] = smoothAmountPercent;
@@ -206,7 +205,7 @@
                 splinePoints[i] = new SplinePoint(point);
             }
 
-            Spline curve = new Spline(Spline.Type.BSpline);
+            Spline curve = new Spline(Spline.Type.Bezier);
             curve.points = splinePoints;
 
             return curve;
