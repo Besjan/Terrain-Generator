@@ -19,6 +19,7 @@
         const float boundaryResolution = 1.0f;
 
         const int curveOffset = 2;
+        const int curveSampleRate = 15;
 
         const float smoothSize = 10.0f;
 
@@ -205,7 +206,7 @@
                 splinePoints[i] = new SplinePoint(point);
             }
 
-            Spline curve = new Spline(Spline.Type.Bezier);
+            Spline curve = new Spline(Spline.Type.Bezier, curveSampleRate);
             curve.points = splinePoints;
 
             return curve;
