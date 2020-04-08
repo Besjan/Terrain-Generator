@@ -44,11 +44,12 @@
 
             var smoothFactor = 1 / Mathf.Sqrt(smoothSize);
 
-            foreach (var keyPair in hitTerrains)
+            for (int tc = 2; tc < hitTerrains.Count; tc++)
             {
+                var keyPair = hitTerrains.ElementAt(tc);
                 var terrain = keyPair.Key;
                 var boundaryCurve = keyPair.Value.GetCurve(true);
-
+                
                 var terrainSize = terrain.terrainData.size;
                 var heightmapResolution = terrain.terrainData.heightmapResolution;
                 var terrainPosition = terrain.GetPosition();
@@ -66,7 +67,7 @@
                         if (pointPosition2D.IsInside(boundaryPoints2D)) continue;
 
                         var positionOnXZPlane = new Vector3(posX, 0, posZ);
-                        var positionOnCurve = boundaryCurve.EvaluatePosition(boundaryCurve.Project(positionOnXZPlane));
+                        var positionOnCurve = boundaryCurve.EvaluatePosition(boundaryCurve.Project(positionOnXZPlane).percent);
                         var distanceFromCurve = Vector3.Distance(positionOnXZPlane, positionOnCurve);
 
                         if (distanceFromCurve > smoothSize)
@@ -82,8 +83,8 @@
                     }
                 }
 
-                Undo.RecordObject(terrain.terrainData, "Smooth heights");
                 terrain.terrainData.SetHeights(0, 0, heights);
+                GameObject.DestroyImmediate(boundaryCurve.gameObject);
 
                 Debug.Log(DateTime.Now.Subtract(startTime).TotalMinutes);
 
@@ -196,7 +197,7 @@
             return boundaryPoints.AddTileIntersectionPoints();
         }
 
-        static Spline GetCurve(this Vector3[] points, bool XZPlane = false)
+        static SplineComputer GetCurve(this Vector3[] points, bool XZPlane = false)
         {
             SplinePoint[] splinePoints = new SplinePoint[points.Length];
             for (int i = 0; i < splinePoints.Length; i++)
@@ -206,8 +207,11 @@
                 splinePoints[i] = new SplinePoint(point);
             }
 
-            Spline curve = new Spline(Spline.Type.Bezier, curveSampleRate);
-            curve.points = splinePoints;
+            var curve = new GameObject("SP").AddComponent<SplineComputer>();
+            curve.type = Spline.Type.Bezier;
+            curve.sampleMode = SplineComputer.SampleMode.Uniform;
+            curve.sampleRate = curveSampleRate;
+            curve.SetPoints(splinePoints);
 
             return curve;
         }
