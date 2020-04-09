@@ -44,12 +44,12 @@
 
             var smoothFactor = 1 / Mathf.Sqrt(smoothSize);
 
-            for (int tc = 2; tc < hitTerrains.Count; tc++)
+            for (int tc = 0; tc < hitTerrains.Count; tc++)
             {
                 var keyPair = hitTerrains.ElementAt(tc);
                 var terrain = keyPair.Key;
                 var boundaryCurve = keyPair.Value.GetCurve(true);
-                
+
                 var terrainSize = terrain.terrainData.size;
                 var heightmapResolution = terrain.terrainData.heightmapResolution;
                 var terrainPosition = terrain.GetPosition();
@@ -84,11 +84,10 @@
                 }
 
                 terrain.terrainData.SetHeights(0, 0, heights);
+
                 GameObject.DestroyImmediate(boundaryCurve.gameObject);
 
-                Debug.Log(DateTime.Now.Subtract(startTime).TotalMinutes);
-
-                return;
+                Debug.Log(terrain.name + ": " + DateTime.Now.Subtract(startTime).TotalMinutes);
             }
         }
 
