@@ -13,22 +13,22 @@
 
         public const string TerrainDataPath = "TerrainData/";
 
-        public static string SourceImagesPath;
-        public static string TexturesPath;
-
         public const int CenterTileLon = 392;
         public const int CenterTileLat = 5820;
 
         public const int HeightmapResolution = 4097;
-        public const string TextureFormat = "tif";
-        public static int TextureResolution;
 
-        public const int PatchSize = 2000;
-        public const int PatchResolution = 10000;
+        public static string SourceImagesPath;
+        public static string TexturesPath;
+
+        public const int TextureResolution = 16384;
+        public static int PatchResolution;
+
+        public const string TextureFormat = "tif";
 
         public static string Magick;
 
-        public const int maxTextureResolution = 16384;
+        const int patchSize = 2000;
 
 
         public struct Tile
@@ -48,7 +48,7 @@
             if (!Directory.Exists(TexturesPath)) Directory.CreateDirectory(TexturesPath);
 
             // Fit 2 images of size 2000 + 96 in 4K terrain
-            TextureResolution = (16384 - 96) / 2;
+            PatchResolution = (TextureResolution - (HeightmapResolution - 1) % patchSize) / ((HeightmapResolution - 1) / patchSize);
 
             Magick = Path.Combine(new string[] { projectPath, "ImageMagick", "magick.exe" });
         }

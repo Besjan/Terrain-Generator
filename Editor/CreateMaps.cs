@@ -29,7 +29,7 @@
             var texturesPath = TerrainSettings.TexturesPath;
 
             var command = string.Format("mogrify -resize {0}x{0} -quality 100 -path {1}  {2}\\*.{3}", 
-                TerrainSettings.TextureResolution, texturesPath, sourcePath, TerrainSettings.TextureFormat);
+                TerrainSettings.PatchResolution, texturesPath, sourcePath, TerrainSettings.TextureFormat);
 
             var arguments = string.Format(@"{0} {1}", magick, command);
 
