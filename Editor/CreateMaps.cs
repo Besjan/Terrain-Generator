@@ -4,8 +4,10 @@
     using UnityEditor;
     using System.IO;
     using Cuku.Utilities;
+	using System.Collections.Generic;
+	using System;
 
-    public class CreateMaps
+	public class CreateMaps
     {
         static string magick;
 
@@ -43,39 +45,61 @@
         {
             Initialize();
 
-            var source = TerrainSettings.SourceImagesPath;
-            var cropped = TerrainSettings.TexturesPath;
+            var texturesPath = TerrainSettings.TexturesPath;
 
-            var images = Directory.GetFiles(source, "*.tif");
+            var images = Directory.GetFiles(texturesPath, "*." + TerrainSettings.TextureFormat);
 
-            // Resize source images to Unity's max texture resolution
+            var tiles = new Dictionary<string, List<string>>();
 
             foreach (var image in images)
             {
-                var sourceImage = image;
-
                 // Get tile coordinates
-                var coordinates = TerrainSettings.GetLonLat(sourceImage);
-                var lon = coordinates[0];
-                var lat = coordinates[1];
+                int lon = 0;
+                int lat = 0;
+                TerrainSettings.GetLonLat(image, ref lon, ref lat);
 
-                // group images by 9 per tile
-                // use convert -draw to combine them
+                var id = TerrainSettings.GetTileIdFromLonLat(lon, lat);
 
-                var x = (lon - centerTileLon) / 2;
-                var y = (lat - centerTileLat) / 2;
+                if (!tiles.ContainsKey(id))
+                {
+                    tiles.Add(id, new List<string>());
+                    continue;
+                }
 
-                var croppedName = string.Format("{0}_{1}.tif", x, y);
+                // todo: include image in all intersecting terrains, using size 
 
-                var croppedImage = Path.Combine(cropped, croppedName);
+                tiles[id].Add(image);
+            }
 
-                var command = string.Format("convert {0} -crop 1000x1000+0+0 +repage {1}", sourceImage, croppedImage);
+            //convert - size 100x100 xc:skyblue \
+            //  -draw "image over  5,10 0,0 'balloon.gif'" \
+            //  -draw "image over 35,30 0,0 'medical.gif'" \
+            //  -draw "image over 62,50 0,0 'present.gif'" \
+            //  -draw "image over 10,55 0,0 'shading.gif'" \
+            //  drawn.gif
 
-                Debug.Log(command);
+            //var command = string.Format("convert -size {0}x{0} xc:skyblue ", TerrainSettings.TextureResolution);
+            //var croppedName = string.Format("{0}_{1}.tif", x, y);
 
-                var arguments = string.Format(@"{0} {1}", magick, command);
+            //var croppedImage = Path.Combine(texturesPath, croppedName);
 
-                arguments.ExecutePowerShellCommand();
+            ////var command = string.Format("convert {0} -crop 1000x1000+0+0 +repage {1}", sourceImage, croppedImage);
+
+            //Debug.Log(command);
+
+            //var arguments = string.Format(@"{0} {1}", magick, command);
+
+            //arguments.ExecutePowerShellCommand();
+
+            Debug.Log(tiles.Count);
+            foreach (var tile in tiles)
+            {
+                Debug.Log(tile.Key);
+                foreach (var value in tile.Value)
+                {
+                    Debug.Log(value);
+                }
+                Debug.Log("=============");
             }
         }
     }

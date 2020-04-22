@@ -15,8 +15,8 @@
 
         static void Initialize()
         {
-            centerTileLon = TerrainSettings.CenterTileLon * 1000;
-            centerTileLat = TerrainSettings.CenterTileLat * 1000;
+            centerTileLon = TerrainSettings.CenterTileLon;
+            centerTileLat = TerrainSettings.CenterTileLat;
 
             heightmapResolution = TerrainSettings.HeightmapResolution;
         }
@@ -49,10 +49,10 @@
 
             for (int i = 0; i < terrainsData.Length; i++)
             {
-                var id = terrainsData[i].name.Split('_');
+                int posX = 0;
+                int posZ = 0;
 
-                var posX = Convert.ToInt32(id[0]) * (heightmapResolution - 1);
-                var posZ = Convert.ToInt32(id[1]) * (heightmapResolution - 1);
+                TerrainSettings.GetTilePosition(terrainsData[i].name, ref posX, ref posZ);
 
                 var tile = GameObject.Instantiate(tilePrefab, terrain.transform);
                 tile.name = TerrainSettings.GetTerrainObjectName(posX, posZ);
@@ -68,9 +68,9 @@
         static void CreateTilesData(string filePath)
         {
             // Get patch coordinates
-            var coordinates = TerrainSettings.GetLonLat(filePath);
-            var patchLon = coordinates[0] * 1000;
-            var patchLat = coordinates[1] * 1000;
+            int patchLon = 0;
+            int patchLat = 0;
+            TerrainSettings.GetLonLat(filePath, ref patchLon, ref patchLat);
 
             List<TerrainSettings.Tile> tiles = GetRelatedTilesData(patchLon, patchLat);
 
@@ -116,15 +116,15 @@
         static List<TerrainSettings.Tile> GetRelatedTilesData(int patchLon, int patchLat)
         {
             var tiles = new List<TerrainSettings.Tile>();
-
-            var tileX = (int)Math.Floor(1f * (patchLon - centerTileLon) / heightmapResolution);
-            var tileZ = (int)Math.Floor(1f * (patchLat - centerTileLat) / heightmapResolution);
+            int tileX = 0;
+            int tileZ = 0;
+            TerrainSettings.GetTileXZId(patchLon, patchLat, ref tileX, ref tileZ);
 
             for (int x = tileX - 1; x < tileX + 2; x++)
             {
                 for (int z = tileZ - 1; z < tileZ + 2; z++)
                 {
-                    var tileId = string.Format("{0}_{1}", x, z);
+                    var tileId = TerrainSettings.GetTileIdFromXZ(x, z);
 
                     var bounds = new int[4];
                     bounds[0] = centerTileLon + x * (heightmapResolution - 1);
