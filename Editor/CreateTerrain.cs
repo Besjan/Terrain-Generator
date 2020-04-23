@@ -7,7 +7,7 @@
     using System;
     using System.Linq;
 
-    public class CreateTerrain
+    public static class CreateTerrain
     {
         static int centerTileLon;
         static int centerTileLat;
@@ -51,8 +51,7 @@
             {
                 int posX = 0;
                 int posZ = 0;
-
-                TerrainSettings.GetTilePosition(terrainsData[i].name, ref posX, ref posZ);
+                terrainsData[i].name.GetTilePosition(ref posX, ref posZ);
 
                 var tile = GameObject.Instantiate(tilePrefab, terrain.transform);
                 tile.name = TerrainSettings.GetTerrainObjectName(posX, posZ);
@@ -67,10 +66,9 @@
 
         static void CreateTilesData(string filePath)
         {
-            // Get patch coordinates
             int patchLon = 0;
             int patchLat = 0;
-            TerrainSettings.GetLonLat(filePath, ref patchLon, ref patchLat);
+            filePath.GetLonLat(ref patchLon, ref patchLat);
 
             List<TerrainSettings.Tile> tiles = GetRelatedTilesData(patchLon, patchLat);
 
@@ -98,7 +96,7 @@
             {
                 var tile = tiles[i];
                 var terrainData = CreateTerrainData(tile.Heights);
-                AssetDatabase.CreateAsset(terrainData, TerrainSettings.GetTerrainDataName(tile.Id));
+                AssetDatabase.CreateAsset(terrainData, tile.Id.GetTerrainDataName());
                 AssetDatabase.Refresh();
 
                 tile.Heights = null;

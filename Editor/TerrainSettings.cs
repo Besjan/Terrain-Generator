@@ -4,9 +4,10 @@
 	using System.IO;
 	using UnityEngine;
 
-	public class TerrainSettings
+	public static class TerrainSettings
     {
-        public const string ResourcesPath = "Assets/Resources/";
+		#region Properties
+		public const string ResourcesPath = "Assets/Resources/";
 
         public const string SourceTerrainPointsPath = "Assets/StreamingAssets/SourceTerrainPoints";
         public const string CompletedTerrainPointsPath = "Assets/StreamingAssets/CompletedTerrainPoints";
@@ -30,15 +31,15 @@
 
         public static string Magick;
 
-
         public struct Tile
         {
             public string Id;
             public float[,] Heights;
             public int[] Bounds;
         }
+		#endregion
 
-        static TerrainSettings()
+		static TerrainSettings()
         {
             var dataPath = Application.dataPath.Replace(@"/", @"\");
             var projectPath = Directory.GetParent(dataPath).ToString();
@@ -53,7 +54,7 @@
             Magick = Path.Combine(new string[] { projectPath, "ImageMagick", "magick.exe" });
         }
 
-        public static void GetLonLat(string filePath, ref int lon, ref int lat)
+        public static void GetLonLat(this string filePath, ref int lon, ref int lat)
         {
             var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
             lon = Convert.ToInt32(coordinates[0]) * 1000;
@@ -74,26 +75,33 @@
             return GetTileIdFromXZ(x, z);
         }
 
+        public static string GetTileIdFromPosition(this int[] position)
+        {
+            var x = position[0] / (HeightmapResolution - 1);
+            var z = position[1] / (HeightmapResolution - 1);
+            return GetTerrainObjectName(x, z);
+        }
+
         public static string GetTileIdFromXZ(int x, int z)
         {
             return string.Format("{0}{2}{1}", x, z, IdSeparator);
         }
 
-        public static void GetTilePosition(string id, ref int x, ref int z)
+        public static void GetTilePosition(this string id, ref int x, ref int z)
         {
             var xz = id.Split(IdSeparator);
             x = Convert.ToInt32(xz[0]) * (HeightmapResolution - 1);
             z = Convert.ToInt32(xz[1]) * (HeightmapResolution - 1);
         }
 
-        public static string GetTerrainDataName(string id)
+        public static string GetTerrainDataName(this string id)
         {
             return string.Format("{0}{1}{2}.asset", ResourcesPath, TerrainDataPath, id);
         }
 
-        public static string GetTerrainObjectName(int posX, int posZ)
+        public static string GetTerrainObjectName(int x, int z)
         {
-            return string.Format("{0} | {1}", posX, posZ);
+            return string.Format("{0} | {1}", x, z);
         }
     }
 }
