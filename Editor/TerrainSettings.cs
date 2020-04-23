@@ -3,8 +3,9 @@
 	using System;
 	using System.IO;
 	using UnityEngine;
+    using Cuku.Utilities;
 
-	public static class TerrainSettings
+    public static class TerrainSettings
     {
 		#region Properties
 		public const string ResourcesPath = "Assets/Resources/";
@@ -79,7 +80,7 @@
         {
             var x = position[0] / (HeightmapResolution - 1);
             var z = position[1] / (HeightmapResolution - 1);
-            return GetTerrainObjectName(x, z);
+            return GetTileIdFromXZ(x, z);
         }
 
         public static string GetTileIdFromXZ(int x, int z)
@@ -102,6 +103,15 @@
         public static string GetTerrainObjectName(int x, int z)
         {
             return string.Format("{0} | {1}", x, z);
+        }
+
+        public static void DoMagick(this string command)
+        {
+            var arguments = string.Format(@"{0} {1}", Magick, command);
+
+            Debug.Log(arguments);
+
+            arguments.ExecutePowerShellCommand();
         }
     }
 }
