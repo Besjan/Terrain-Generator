@@ -69,7 +69,6 @@
             }
 
             var patchRatio = TerrainSettings.PatchResolution * 1.0f / TerrainSettings.PatchSize;
-            Debug.Log(patchRatio);
 
             var tiles = new Dictionary<string, Dictionary<string, Vector2Int>>();
             var texturesPath = TerrainSettings.TexturesPath;
@@ -130,11 +129,12 @@
 
             foreach (var tile in tiles)
             {
-                var command = string.Format("convert -size {0}x{0} canvas:none ", TerrainSettings.TextureResolution);
+                var command = string.Format("convert -size {0}x{0} canvas:white ", TerrainSettings.TextureResolution);
 
                 foreach (var image in tile.Value)
                 {
-                    command += string.Format("{0} -geometry +{1}+{2} -composite ", image.Key, image.Value[0], image.Value[1]);
+                    command += string.Format("{0} -geometry {1}{2}{3}{4} -composite ",
+                        image.Key, image.Value[0] >= 0 ? "+" : "", image.Value[0], image.Value[1] >= 0 ? "+" : "", image.Value[1]);
                 }
 
                 var tileName = Path.Combine(TerrainSettings.TexturesPath, tile.Key + TerrainSettings.TextureFormat);
@@ -142,8 +142,6 @@
 
                 command.DoMagick(true);
             }
-
-            return;
 
             // Cleanup images files
             foreach (var image in images)
