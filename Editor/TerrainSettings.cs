@@ -15,20 +15,24 @@
 
         public const string TerrainDataPath = "TerrainData/";
 
-        public const int CenterTileLon = 392000;
-        public const int CenterTileLat = 5820000;
+        public const char IdSeparator = '_';
+
+        public static Vector2Int CenterLonLat = new Vector2Int(392000, 5820000);
 
         public const int HeightmapResolution = 4097;
 
-        public static string SourceImagesPath;
-        public static string TexturesPath;
-
-        public const int TextureResolution = 16384;
         public static int PatchResolution;
         public static int PatchSize = 2000;
 
-        public const string TextureFormat = "tif";
-        public const char IdSeparator = '_';
+        public static string SourceImagesPath;
+        public const string ImageFormat = ".ecw";
+        public const string ImageConversionCommand = "gdal_translate -of JPEG -a_srs EPSG:4258";
+
+        public static string TexturesPath;
+        //public const int TextureResolution = 2048;
+        public const int TextureResolution = 16384;
+        public const string TextureFormat = ".jpg";
+        public static string[] TextureNameDirt = new string[] { "dop20rgb_", "_2_be_2019" };
 
         public static string Magick;
 
@@ -55,44 +59,48 @@
             Magick = Path.Combine(new string[] { projectPath, "ImageMagick", "magick.exe" });
         }
 
-        public static void GetLonLat(this string filePath, ref int lon, ref int lat)
+        public static Vector2Int GetLonLat(this string filePath)
         {
             var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
-            lon = Convert.ToInt32(coordinates[0]) * 1000;
-            lat = Convert.ToInt32(coordinates[1]) * 1000;
+            var lonLat = new Vector2Int(Convert.ToInt32(coordinates[0]),
+                                        Convert.ToInt32(coordinates[1]));
+            return lonLat * 1000;
         }
 
-        public static void GetTileXZId(int lon, int lat, ref int tileXId, ref int tileZId)
+        public static Vector2Int GetTileXZIdFromLonLat(this Vector2Int lonLat)
         {
-            tileXId = (int)Math.Floor(1f * (lon - CenterTileLon) / HeightmapResolution);
-            tileZId = (int)Math.Floor(1f * (lat - CenterTileLat) / HeightmapResolution);
+            var xzId = new Vector2Int(Convert.ToInt32(Math.Floor(1f * (lonLat[0] - CenterLonLat[0]))),
+                                      Convert.ToInt32(Math.Floor(1f * (lonLat[1] - CenterLonLat[1]))));
+            return xzId / HeightmapResolution;
         }
 
-        public static string GetTileIdFromLonLat(int lon, int lat)
+        public static Vector2Int GetTileXZIdFromName(this string name)
         {
-            int x = 0;
-            int z = 0;
-            GetTileXZId(lon, lat, ref x, ref z);
-            return GetTileIdFromXZ(x, z);
+            var xzId = name.Split(new char[] { '_' });
+            return new Vector2Int(Convert.ToInt32(xzId[0]), Convert.ToInt32(xzId[1]));
         }
 
-        public static string GetTileIdFromPosition(this int[] position)
+        public static string GetTileIdFromLonLat(this Vector2Int lonLat)
         {
-            var x = position[0] / (HeightmapResolution - 1);
-            var z = position[1] / (HeightmapResolution - 1);
-            return GetTileIdFromXZ(x, z);
+            Vector2Int xz = lonLat.GetTileXZIdFromLonLat();
+            return GetTileIdFromXZ(xz);
         }
 
-        public static string GetTileIdFromXZ(int x, int z)
+        public static string GetTileIdFromPosition(this Vector2Int position)
         {
-            return string.Format("{0}{2}{1}", x, z, IdSeparator);
+            Vector2Int xz = new Vector2Int(position[0], position[1]) / (HeightmapResolution - 1);
+            return GetTileIdFromXZ(xz);
         }
 
-        public static void GetTilePosition(this string id, ref int x, ref int z)
+        public static string GetTileIdFromXZ(this Vector2Int xz)
         {
-            var xz = id.Split(IdSeparator);
-            x = Convert.ToInt32(xz[0]) * (HeightmapResolution - 1);
-            z = Convert.ToInt32(xz[1]) * (HeightmapResolution - 1);
+            return string.Format("{0}{2}{1}", xz[0], xz[1], IdSeparator);
+        }
+
+        public static Vector2Int GetTilePosition(this string id)
+        {
+            var idXZ = id.Split(IdSeparator);
+            return new Vector2Int(Convert.ToInt32(idXZ[0]), Convert.ToInt32(idXZ[1])) * (HeightmapResolution - 1);
         }
 
         public static string GetTerrainDataName(this string id)
@@ -100,18 +108,16 @@
             return string.Format("{0}{1}{2}.asset", ResourcesPath, TerrainDataPath, id);
         }
 
-        public static string GetTerrainObjectName(int x, int z)
+        public static string GetTerrainObjectName(this Vector2Int xz)
         {
-            return string.Format("{0} | {1}", x, z);
+            return string.Format("{0} | {1}", xz[0], xz[1]);
         }
 
-        public static void DoMagick(this string command)
+        public static void DoMagick(this string command, bool wait = false)
         {
             var arguments = string.Format(@"{0} {1}", Magick, command);
 
-            Debug.Log(arguments);
-
-            arguments.ExecutePowerShellCommand();
+            arguments.ExecutePowerShellCommand(wait);
         }
     }
 }

@@ -9,23 +9,9 @@
 
     public static class CreateTerrain
     {
-        static int centerTileLon;
-        static int centerTileLat;
-        static int heightmapResolution;
-
-        static void Initialize()
-        {
-            centerTileLon = TerrainSettings.CenterTileLon;
-            centerTileLat = TerrainSettings.CenterTileLat;
-
-            heightmapResolution = TerrainSettings.HeightmapResolution;
-        }
-
         [MenuItem("Cuku/Terrain/Create Terrain Data")]
         static void CreateTerrainData()
         {
-            Initialize();
-
             var filePath = Directory.GetFiles(TerrainSettings.SourceTerrainPointsPath, "*.txt")[0];
 
             if (string.IsNullOrEmpty(filePath))
@@ -49,13 +35,11 @@
 
             for (int i = 0; i < terrainsData.Length; i++)
             {
-                int posX = 0;
-                int posZ = 0;
-                terrainsData[i].name.GetTilePosition(ref posX, ref posZ);
+                Vector2Int posXZ = terrainsData[i].name.GetTilePosition();
 
                 var tile = GameObject.Instantiate(tilePrefab, terrain.transform);
-                tile.name = TerrainSettings.GetTerrainObjectName(posX, posZ);
-                tile.transform.position = new Vector3(posX, 0, posZ);
+                tile.name = posXZ.GetTerrainObjectName();
+                tile.transform.position = new Vector3(posXZ[0], 0, posXZ[1]);
 
                 var tileTerrain = tile.GetComponent<Terrain>();
                 tileTerrain.groupingID = terrainGroup.GroupID;
@@ -66,11 +50,8 @@
 
         static void CreateTilesData(string filePath)
         {
-            int patchLon = 0;
-            int patchLat = 0;
-            filePath.GetLonLat(ref patchLon, ref patchLat);
-
-            List<TerrainSettings.Tile> tiles = GetRelatedTilesData(patchLon, patchLat);
+            Vector2Int patchLonLat = filePath.GetLonLat();
+            List<TerrainSettings.Tile> tiles = patchLonLat.GetRelatedTilesData();
 
             // Put all patch points in related tiles
             using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -111,27 +92,26 @@
             CreateTerrainData();
         }
 
-        static List<TerrainSettings.Tile> GetRelatedTilesData(int patchLon, int patchLat)
+        static List<TerrainSettings.Tile> GetRelatedTilesData(this Vector2Int patchLonLat)
         {
             var tiles = new List<TerrainSettings.Tile>();
-            int tileX = 0;
-            int tileZ = 0;
-            TerrainSettings.GetTileXZId(patchLon, patchLat, ref tileX, ref tileZ);
+            Vector2Int tileXZ = patchLonLat.GetTileXZIdFromLonLat();
 
-            for (int x = tileX - 1; x < tileX + 2; x++)
+            for (int x = tileXZ[0] - 1; x < tileXZ[0]+ 2; x++)
             {
-                for (int z = tileZ - 1; z < tileZ + 2; z++)
+                for (int z = tileXZ[1] - 1; z < tileXZ[1] + 2; z++)
                 {
-                    var tileId = TerrainSettings.GetTileIdFromXZ(x, z);
+                    Vector2Int xz = new Vector2Int();
+                    var tileId = xz.GetTileIdFromXZ();
 
                     var bounds = new int[4];
-                    bounds[0] = centerTileLon + x * (heightmapResolution - 1);
-                    bounds[1] = bounds[0] + (heightmapResolution - 1);
-                    bounds[2] = centerTileLat + z * (heightmapResolution - 1);
-                    bounds[3] = bounds[2] + (heightmapResolution - 1);
+                    bounds[0] = TerrainSettings.CenterLonLat[0] + x * (TerrainSettings.HeightmapResolution - 1);
+                    bounds[1] = bounds[0] + (TerrainSettings.HeightmapResolution - 1);
+                    bounds[2] = TerrainSettings.CenterLonLat[1] + z * (TerrainSettings.HeightmapResolution - 1);
+                    bounds[3] = bounds[2] + (TerrainSettings.HeightmapResolution - 1);
 
                     // Add new tile if is current or next tile
-                    var isNewTile = x - tileX >= 0 && z - tileZ >= 0;
+                    var isNewTile = x - tileXZ[0] >= 0 && z - tileXZ[1] >= 0;
                     AddRelatedTile(tiles, tileId, bounds, isNewTile);
                 }
             }
@@ -144,7 +124,7 @@
             var terrainData = Resources.Load<TerrainData>(TerrainSettings.TerrainDataPath + tileId);
             if (terrainData != null)
             {
-                var heights = DenormalizeHeights(terrainData.GetHeights(0, 0, heightmapResolution, heightmapResolution), terrainData.size.y);
+                var heights = DenormalizeHeights(terrainData.GetHeights(0, 0, TerrainSettings.HeightmapResolution, TerrainSettings.HeightmapResolution), terrainData.size.y);
                 tiles.Add(new TerrainSettings.Tile
                 {
                     Id = tileId,
@@ -160,7 +140,7 @@
             tiles.Add(new TerrainSettings.Tile
             {
                 Id = tileId,
-                Heights = new float[heightmapResolution, heightmapResolution],
+                Heights = new float[TerrainSettings.HeightmapResolution, TerrainSettings.HeightmapResolution],
                 Bounds = bounds
             });
             return;
