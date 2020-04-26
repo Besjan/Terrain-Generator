@@ -149,5 +149,17 @@
                 File.Delete(image);
             }
         }
+
+        [MenuItem("Cuku/Terrain/Apply Textures To MS Terrain")]
+        static void ApplyTexturesToMSTerrain()
+        {
+            var textures = Resources.LoadAll<Texture2D>(TerrainSettings.TerrainTexturesPath);
+            var msTerrain = GameObject.FindObjectsOfType<MicroSplatTerrain>();
+
+            for (int i = 0; i < msTerrain.Length; i++)
+            {
+                msTerrain[i].tintMapOverride = textures.FirstOrDefault(t => t.name == msTerrain[i].name);
+            }
+        }
     }
 }

@@ -14,6 +14,7 @@
         public const string CompletedTerrainPointsPath = "Assets/StreamingAssets/CompletedTerrainPoints";
 
         public const string TerrainDataPath = "TerrainData/";
+        public const string TerrainTexturesPath = "TerrainTextures/";
 
         public const char IdSeparator = '_';
 
