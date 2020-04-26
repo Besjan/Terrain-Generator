@@ -108,11 +108,6 @@
             return string.Format("{0}{1}{2}.asset", ResourcesPath, TerrainDataPath, id);
         }
 
-        public static string GetTerrainObjectName(this Vector2Int xz)
-        {
-            return string.Format("{0} | {1}", xz[0], xz[1]);
-        }
-
         public static void DoMagick(this string command, bool wait = false)
         {
             var arguments = string.Format(@"{0} {1}", Magick, command);

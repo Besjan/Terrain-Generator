@@ -38,7 +38,7 @@
                 Vector2Int posXZ = terrainsData[i].name.GetTilePosition();
 
                 var tile = GameObject.Instantiate(tilePrefab, terrain.transform);
-                tile.name = posXZ.GetTerrainObjectName();
+                tile.name = posXZ.GetTileIdFromXZ();
                 tile.transform.position = new Vector3(posXZ[0], 0, posXZ[1]);
 
                 var tileTerrain = tile.GetComponent<Terrain>();
