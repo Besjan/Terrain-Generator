@@ -22,16 +22,16 @@
 
         public const int HeightmapResolution = 4097;
 
-        public static int PatchResolution;
-        public static int PatchSize = 2000;
+        public const int PatchResolution = 10000;
+        public const int PatchSize = 2000;
 
         public static string SourceImagesPath;
         public const string ImageFormat = ".ecw";
-        public const string ImageConversionCommand = "gdal_translate -of JPEG -a_srs EPSG:4258";
+        public const string ImageConversionCommand = "gdal_translate -of JPEG -a_srs EPSG:25833";
 
+        public static int TileResolution;
+        public const int TextureResolution = 8192;
         public static string TexturesPath;
-        //public const int TextureResolution = 2048;
-        public const int TextureResolution = 16384;
         public const string TextureFormat = ".jpg";
         public static string[] TextureNameDirt = new string[] { "dop20rgb_", "_2_be_2019" };
 
@@ -54,8 +54,7 @@
             TexturesPath = Path.Combine(projectPath, "TerrainTextures");
             if (!Directory.Exists(TexturesPath)) Directory.CreateDirectory(TexturesPath);
 
-            // Fit 2 images of size 2000 + 96 in 4K terrain
-            PatchResolution = (TextureResolution - (HeightmapResolution - 1) % PatchSize) / ((HeightmapResolution - 1) / PatchSize);
+            TileResolution = (HeightmapResolution - 1) * PatchResolution / PatchSize;
 
             Magick = Path.Combine(new string[] { projectPath, "ImageMagick", "magick.exe" });
         }

@@ -44,17 +44,12 @@
             {
                 File.Delete(metaFile);
             }
-
-            // Resize textures
-            var command = string.Format("mogrify -resize {0}x{0} -quality 100 {1}\\*{2}",
-                TerrainSettings.PatchResolution, TerrainSettings.TexturesPath, TerrainSettings.TextureFormat);
-
-            command.DoMagick();
         }
 
         [MenuItem("Cuku/Terrain/Combine Textures")]
         static void CombineTextures()
         {
+            // Group textures in tiles as terrain data
             var startXZIds = new List<Vector2Int>();
             var tilePositions = new List<Vector2Int>();
             var terrainsData = Resources.LoadAll<TerrainData>(TerrainSettings.TerrainDataPath);
@@ -108,7 +103,7 @@
 
                     var imagePosition = new Vector2Int();
                     imagePosition[0] = Convert.ToInt32((minImageX - minTileX + startXZIds[i][0]) * patchRatio - startXZIds[i][0]);
-                    imagePosition[1] = Convert.ToInt32(TerrainSettings.TextureResolution - (maxImageZ + 1 - minTileZ + startXZIds[i][1]) * patchRatio + startXZIds[i][1]);
+                    imagePosition[1] = Convert.ToInt32(TerrainSettings.TileResolution - (maxImageZ + 1 - minTileZ + startXZIds[i][1]) * patchRatio + startXZIds[i][1]);
 
                     var tileId = tilePosition.GetTileIdFromPosition();
 
@@ -127,27 +122,36 @@
                 }
             }
 
+            // Combine textures to tiles
             foreach (var tile in tiles)
             {
-                var command = string.Format("convert -size {0}x{0} canvas:white ", TerrainSettings.TextureResolution);
+                var commandComposite = string.Format("convert -size {0}x{0} canvas:white ", TerrainSettings.TileResolution);
 
                 foreach (var image in tile.Value)
                 {
-                    command += string.Format("{0} -geometry {1}{2}{3}{4} -composite ",
+                    commandComposite += string.Format("{0} -geometry {1}{2}{3}{4} -composite ",
                         image.Key, image.Value[0] >= 0 ? "+" : "", image.Value[0], image.Value[1] >= 0 ? "+" : "", image.Value[1]);
                 }
 
                 var tileName = Path.Combine(TerrainSettings.TexturesPath, tile.Key + TerrainSettings.TextureFormat);
-                command += tileName;
+                commandComposite += tileName;
 
-                command.DoMagick(true);
+                if (tile.Key != "0_0") continue;
+
+                commandComposite.DoMagick(true);
             }
 
-            // Cleanup images files
+            // Cleanup single texture files
             foreach (var image in images)
             {
                 File.Delete(image);
             }
+
+            // Resize tile textures
+            var commandResize = string.Format("mogrify -resize {0}x{0} -quality 100 {1}\\*{2}",
+                TerrainSettings.TextureResolution, TerrainSettings.TexturesPath, TerrainSettings.TextureFormat);
+
+            commandResize.DoMagick(true);
         }
 
         [MenuItem("Cuku/Terrain/Apply Textures To MS Terrain")]
