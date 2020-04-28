@@ -50,17 +50,15 @@
         static void CombineTextures()
         {
             // Group textures in tiles as terrain data
-            var startXZIds = new List<Vector2Int>();
             var tilePositions = new List<Vector2Int>();
             var terrainsData = Resources.LoadAll<TerrainData>(TerrainSettings.TerrainDataPath);
+
+            var terrainSize = TerrainSettings.HeightmapResolution - 1;
+
             foreach (TerrainData terrainData in terrainsData)
             {
                 Vector2Int posXZ = terrainData.name.GetTilePosition();
                 tilePositions.Add(posXZ);
-
-                var xzId = terrainData.name.GetTileXZIdFromName();
-                xzId *= (TerrainSettings.HeightmapResolution - 1) % TerrainSettings.PatchSize;
-                startXZIds.Add(xzId);
             }
 
             var patchRatio = TerrainSettings.PatchResolution * 1.0f / TerrainSettings.PatchSize;
@@ -68,7 +66,7 @@
             var tiles = new Dictionary<string, Dictionary<string, Vector2Int>>();
             var texturesPath = TerrainSettings.TexturesPath;
             var images = Directory.GetFiles(texturesPath, "*" + TerrainSettings.TextureFormat);
-            var terrainSize = TerrainSettings.HeightmapResolution - 1;
+
             foreach (var image in images)
             {
                 Vector2Int lonLat = image.GetLonLat();
@@ -102,8 +100,8 @@
                     if (!points.Any(point => point.IsInside(tilePoints))) continue;
 
                     var imagePosition = new Vector2Int();
-                    imagePosition[0] = Convert.ToInt32((minImageX - minTileX + startXZIds[i][0]) * patchRatio - startXZIds[i][0]);
-                    imagePosition[1] = Convert.ToInt32(TerrainSettings.TileResolution - (maxImageZ + 1 - minTileZ + startXZIds[i][1]) * patchRatio + startXZIds[i][1]);
+                    imagePosition[0] = Convert.ToInt32((minImageX - minTileX) * patchRatio);
+                    imagePosition[1] = Convert.ToInt32(TerrainSettings.TileResolution - (maxImageZ + 1 - minTileZ) * patchRatio);
 
                     var tileId = tilePosition.GetTileIdFromPosition();
 
@@ -135,8 +133,6 @@
 
                 var tileName = Path.Combine(TerrainSettings.TexturesPath, tile.Key + TerrainSettings.TextureFormat);
                 commandComposite += tileName;
-
-                if (tile.Key != "0_0") continue;
 
                 commandComposite.DoMagick(true);
             }
