@@ -144,7 +144,7 @@
             }
 
             // Resize tile textures
-            var commandResize = string.Format("mogrify -resize {0}x{0} -quality 100 {1}\\*{2}",
+            var commandResize = string.Format("mogrify -resize {0}x{0} {1}\\*{2}",
                 TerrainSettings.TextureResolution, TerrainSettings.TexturesPath, TerrainSettings.TextureFormat);
 
             commandResize.DoMagick(true);

@@ -30,7 +30,7 @@
         public const string ImageConversionCommand = "gdal_translate -of JPEG -a_srs EPSG:25833";
 
         public static int TileResolution;
-        public const int TextureResolution = 8192;
+        public const int TextureResolution = 16384;
         public static string TexturesPath;
         public const string TextureFormat = ".jpg";
         public static string[] TextureNameDirt = new string[] { "dop20rgb_", "_2_be_2019" };
