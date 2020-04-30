@@ -147,7 +147,7 @@
             var commandResize = string.Format("mogrify -resize {0}x{0} {1}\\*{2}",
                 TerrainSettings.TextureResolution, TerrainSettings.TexturesPath, TerrainSettings.TextureFormat);
 
-            commandResize.DoMagick(true);
+            commandResize.DoMagick();
         }
 
         [MenuItem("Cuku/Terrain/Apply Textures To MS Terrain")]
