@@ -8,10 +8,10 @@
     using System.Linq;
     using System;
 
-    public static class CreateTextures
+    public static class TerrainTextureProcessing
     {
-        [MenuItem("Cuku/Terrain/Prepare Images")]
-        static void PrepareImages()
+        [MenuItem("Cuku/Terrain/Texture/Convert Satellite Images")]
+        static void ConvertSatelliteImages()
         {
             // Convert original images
             var images = Directory.GetFiles(TerrainSettings.SourceImagesPath, "*" + TerrainSettings.ImageFormat);
@@ -46,7 +46,7 @@
             }
         }
 
-        [MenuItem("Cuku/Terrain/Combine Textures")]
+        [MenuItem("Cuku/Terrain/Texture/Combine Textures")]
         static void CombineTextures()
         {
             // Group textures in tiles as terrain data
@@ -148,18 +148,6 @@
                 TerrainSettings.TextureResolution, TerrainSettings.TexturesPath, TerrainSettings.TextureFormat);
 
             commandResize.DoMagick();
-        }
-
-        [MenuItem("Cuku/Terrain/Apply Textures To MS Terrain")]
-        static void ApplyTexturesToMSTerrain()
-        {
-            var textures = Resources.LoadAll<Texture2D>(TerrainSettings.TerrainTexturesPath);
-            var msTerrain = GameObject.FindObjectsOfType<MicroSplatTerrain>();
-
-            for (int i = 0; i < msTerrain.Length; i++)
-            {
-                msTerrain[i].tintMapOverride = textures.FirstOrDefault(t => t.name == msTerrain[i].name);
-            }
         }
     }
 }

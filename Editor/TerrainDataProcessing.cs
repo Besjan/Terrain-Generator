@@ -7,9 +7,9 @@
     using System;
     using System.Linq;
 
-    public static class CreateTerrain
+    public static class TerrainDataProcessing
     {
-        [MenuItem("Cuku/Terrain/Create Terrain Data")]
+        [MenuItem("Cuku/Terrain/Data/Create Terrain Data")]
         static void CreateTerrainData()
         {
             var filePath = Directory.GetFiles(TerrainSettings.SourceTerrainPointsPath, "*.txt")[0];
@@ -22,7 +22,7 @@
             CreateTilesData(filePath);
         }
 
-        [MenuItem("Cuku/Terrain/Create Terrain Tiles")]
+        [MenuItem("Cuku/Terrain/Data/Create Terrain Tiles")]
         static void CreateTerrainTiles()
         {
             var terrain = new GameObject("Terrain", new Type[] { typeof(TerrainGroup) });
