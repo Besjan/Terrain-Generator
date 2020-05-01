@@ -29,6 +29,8 @@
             var tilePrefab = Resources.Load<GameObject>("TerrainTile");
 
             var terrainsData = Resources.LoadAll<TerrainData>(TerrainSettings.TerrainDataPath);
+            terrainsData = terrainsData.OrderBy(td => td.name.GetTileXZIdFromName().x)
+                .ThenBy(td => td.name.GetTileXZIdFromName().y).ToArray();
 
             var terrainGroup = terrain.GetComponent<TerrainGroup>();
             terrainGroup.GroupID = 0;
