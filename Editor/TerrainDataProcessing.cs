@@ -6,6 +6,7 @@
     using System.IO;
     using System;
     using System.Linq;
+    using Cuku.Utilities;
 
     public static class TerrainDataProcessing
     {
@@ -48,6 +49,50 @@
                 tileTerrain.terrainData = terrainsData[i];
                 tile.GetComponent<TerrainCollider>().terrainData = terrainsData[i];
             }
+        }
+
+        [MenuItem("Cuku/Terrain/Data/Connect Terrain Tiles")]
+        static void ConnectTerrainTiles()
+        {
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+
+                var position = terrain.GetPosition();
+                var size = terrain.terrainData.size;
+                var hmResolution = terrain.terrainData.heightmapResolution;
+                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+
+                for (int i = 0; i < hmResolution; i++)
+                {
+                    var j = 0;
+                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
+
+                    j = hmResolution - 1;
+                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
+                }
+                for (int j = 0; j < hmResolution; j++)
+                {
+                    var i = 0;
+                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
+
+                    i = hmResolution - 1;
+                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
+                }
+
+                Undo.RecordObject(terrain.terrainData, "Smooth heights");
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+
+        static float GetHeight(Vector3 position, Vector3 size, int hmResolution, int i, int j)
+        {
+            var posX = size.x * i / (hmResolution - 1) + position.x;
+            var posZ = size.z * j / (hmResolution - 1) + position.z;
+            var point = new Vector3(posX, 0, posZ).ProjectToTerrain();
+            return point.y / size.y;
         }
 
         static void CreateTilesData(string filePath)
