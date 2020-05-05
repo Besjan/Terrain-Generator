@@ -10,8 +10,8 @@
 
     public static class TerrainDataProcessing
     {
-        [MenuItem("Cuku/Terrain/Data/Create Terrain Data")]
-        static void CreateTerrainData()
+        [MenuItem("Cuku/Terrain/Data/Create Data")]
+        static void CreateData()
         {
             var filePath = Directory.GetFiles(TerrainSettings.SourceTerrainPointsPath, "*.txt")[0];
 
@@ -23,8 +23,8 @@
             CreateTilesData(filePath);
         }
 
-        [MenuItem("Cuku/Terrain/Data/Create Terrain Tiles")]
-        static void CreateTerrainTiles()
+        [MenuItem("Cuku/Terrain/Data/Create Tiles")]
+        static void CreateTiles()
         {
             var terrain = new GameObject("Terrain", new Type[] { typeof(TerrainGroup) });
             var tilePrefab = Resources.Load<GameObject>("TerrainTile");
@@ -51,8 +51,40 @@
             }
         }
 
-        [MenuItem("Cuku/Terrain/Data/Connect Terrain Tiles")]
-        static void ConnectTerrainTiles()
+        [MenuItem("Cuku/Terrain/Data/Normalize Heights")]
+        static void NormalizeHeights()
+        {
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+                
+                var hmResolution = terrain.terrainData.heightmapResolution;
+                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+                var maxHeight = heights.Cast<float>().Max();
+
+                if (maxHeight != 1)
+                {
+                    Debug.Log(terrain.name);
+                }
+
+                terrain.terrainData.size = Vector3.Scale(terrain.terrainData.size, new Vector3(1, maxHeight, 1));
+
+                for (int i = 0; i < hmResolution; i++)
+                {
+                    for (int j = 0; j < hmResolution; j++)
+                    {
+                        heights[j, i] /= maxHeight;
+                    }
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+
+        [MenuItem("Cuku/Terrain/Data/Connect Tiles")]
+        static void ConnectTiles()
         {
             var terrains = GameObject.FindObjectsOfType<Terrain>();
 
@@ -60,10 +92,33 @@
             {
                 var terrain = terrains[t];
 
+                if (terrain.name != "-6_-4") continue;
+                //if (terrain.name != "-6_-4" && terrain.name != "-5_-4") continue;
+
                 var position = terrain.GetPosition();
                 var size = terrain.terrainData.size;
                 var hmResolution = terrain.terrainData.heightmapResolution;
                 var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+
+                //int iId = 0;
+                //int jId = 0;
+                //for (int i = 0; i < hmResolution; i++)
+                //{
+                //    for (int j = 0; j < hmResolution; j++)
+                //    {
+                //        if (heights[j, i] == 1)
+                //        iId = j;
+                //        jId = i;
+                //    }
+                //}
+
+                //var posX = size.x * iId / (hmResolution - 1) + position.x;
+                //var posZ = size.z * jId / (hmResolution - 1) + position.z;
+                //var point = new Vector3(posX, 0, posZ).ProjectToTerrain();
+                //Debug.Log(iId + "," + jId + " | " + point);
+                //var cube = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
+                //cube.position = point;
+                //return;
 
                 for (int i = 0; i < hmResolution; i++)
                 {
@@ -82,7 +137,6 @@
                     heights[j, i] = GetHeight(position, size, hmResolution, i, j);
                 }
 
-                Undo.RecordObject(terrain.terrainData, "Smooth heights");
                 terrain.terrainData.SetHeights(0, 0, heights);
             }
         }
@@ -136,7 +190,7 @@
             var completedPath = Path.Combine(TerrainSettings.CompletedTerrainPointsPath, Path.GetFileName(filePath));
             File.Move(filePath, completedPath);
 
-            CreateTerrainData();
+            CreateData();
         }
 
         static List<TerrainSettings.Tile> GetRelatedTilesData(this Vector2Int patchLonLat)
