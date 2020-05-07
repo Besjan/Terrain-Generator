@@ -8,7 +8,7 @@
     public static class TerrainShading
     {
         [MenuItem("Cuku/Terrain/Shading/Convert To MicroSplat Terrain")]
-        static void ApplyMicroSplatMaterial()
+        static void ConvertToMicroSplatTerrain()
         {
             var material = Resources.Load<Material>(Path.Combine(TerrainSettings.TerrainDataPath, TerrainSettings.MicroSplatMaterialPath));
             var terrains = GameObject.FindObjectsOfType<Terrain>();
@@ -24,8 +24,8 @@
             terrains[0].transform.parent.gameObject.SetActive(true);
         }
 
-        [MenuItem("Cuku/Terrain/Shading/Override Tint Texture")]
-        static void OverrideTintTexture()
+        [MenuItem("Cuku/Terrain/Shading/Apply Tint Map")]
+        static void ApplyTintMap()
         {
             var textures = Resources.LoadAll<Texture2D>(TerrainSettings.TerrainTexturesPath);
             var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();

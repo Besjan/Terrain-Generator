@@ -51,104 +51,19 @@
             }
         }
 
-        [MenuItem("Cuku/Terrain/Data/Normalize Heights")]
-        static void NormalizeHeights()
-        {
-            var terrains = GameObject.FindObjectsOfType<Terrain>();
-
-            for (int t = 0; t < terrains.Length; t++)
-            {
-                var terrain = terrains[t];
-                
-                var hmResolution = terrain.terrainData.heightmapResolution;
-                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
-                var maxHeight = heights.Cast<float>().Max();
-
-                if (maxHeight != 1)
-                {
-                    Debug.Log(terrain.name);
-                }
-
-                terrain.terrainData.size = Vector3.Scale(terrain.terrainData.size, new Vector3(1, maxHeight, 1));
-
-                for (int i = 0; i < hmResolution; i++)
-                {
-                    for (int j = 0; j < hmResolution; j++)
-                    {
-                        heights[j, i] /= maxHeight;
-                    }
-                }
-
-                terrain.terrainData.SetHeights(0, 0, heights);
-            }
-        }
-
         [MenuItem("Cuku/Terrain/Data/Connect Tiles")]
         static void ConnectTiles()
         {
-            var terrains = GameObject.FindObjectsOfType<Terrain>();
+            MaximizeHeights();
 
-            for (int t = 0; t < terrains.Length; t++)
-            {
-                var terrain = terrains[t];
+            RoundBorderHeights();
 
-                if (terrain.name != "-6_-4") continue;
-                //if (terrain.name != "-6_-4" && terrain.name != "-5_-4") continue;
+            RecalculateBorderHeights();
 
-                var position = terrain.GetPosition();
-                var size = terrain.terrainData.size;
-                var hmResolution = terrain.terrainData.heightmapResolution;
-                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
-
-                //int iId = 0;
-                //int jId = 0;
-                //for (int i = 0; i < hmResolution; i++)
-                //{
-                //    for (int j = 0; j < hmResolution; j++)
-                //    {
-                //        if (heights[j, i] == 1)
-                //        iId = j;
-                //        jId = i;
-                //    }
-                //}
-
-                //var posX = size.x * iId / (hmResolution - 1) + position.x;
-                //var posZ = size.z * jId / (hmResolution - 1) + position.z;
-                //var point = new Vector3(posX, 0, posZ).ProjectToTerrain();
-                //Debug.Log(iId + "," + jId + " | " + point);
-                //var cube = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
-                //cube.position = point;
-                //return;
-
-                for (int i = 0; i < hmResolution; i++)
-                {
-                    var j = 0;
-                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
-
-                    j = hmResolution - 1;
-                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
-                }
-                for (int j = 0; j < hmResolution; j++)
-                {
-                    var i = 0;
-                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
-
-                    i = hmResolution - 1;
-                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
-                }
-
-                terrain.terrainData.SetHeights(0, 0, heights);
-            }
+            NormalizeHeights();
         }
 
-        static float GetHeight(Vector3 position, Vector3 size, int hmResolution, int i, int j)
-        {
-            var posX = size.x * i / (hmResolution - 1) + position.x;
-            var posZ = size.z * j / (hmResolution - 1) + position.z;
-            var point = new Vector3(posX, 0, posZ).ProjectToTerrain();
-            return point.y / size.y;
-        }
-
+        #region Create Data
         static void CreateTilesData(string filePath)
         {
             Vector2Int patchLonLat = filePath.GetLonLat();
@@ -198,7 +113,7 @@
             var tiles = new List<TerrainSettings.Tile>();
             Vector2Int tileXZ = patchLonLat.GetTileXZIdFromLonLat();
 
-            for (int x = tileXZ[0] - 1; x < tileXZ[0]+ 2; x++)
+            for (int x = tileXZ[0] - 1; x < tileXZ[0] + 2; x++)
             {
                 for (int z = tileXZ[1] - 1; z < tileXZ[1] + 2; z++)
                 {
@@ -318,5 +233,143 @@
 
             return heights;
         }
+        #endregion
+
+        #region Connect Tiles
+        [MenuItem("Cuku/Terrain/Data/MaximizeHeights")]
+        static void MaximizeHeights()
+        {
+            float maxHeight = TerrainSettings.MaxTerrainHeight;
+
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+
+                var hmResolution = terrain.terrainData.heightmapResolution;
+                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+
+                var scale = terrain.terrainData.size.y / maxHeight;
+                terrain.terrainData.size = new Vector3(terrain.terrainData.size.x, maxHeight, terrain.terrainData.size.z);
+
+                for (int i = 0; i < hmResolution; i++)
+                {
+                    for (int j = 0; j < hmResolution; j++)
+                    {
+                        heights[j, i] *= scale;
+                    }
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+
+        [MenuItem("Cuku/Terrain/Data/RoundBorderHeights")]
+        static void RoundBorderHeights()
+        {
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            var rounding = TerrainSettings.BorderRounding;
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+
+                var hmResolution = terrain.terrainData.heightmapResolution;
+                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+
+                for (int i = 0; i < hmResolution; i++)
+                {
+                    var j = 0;
+                    heights[j, i] = Mathf.Round(heights[j, i] * rounding) / rounding;
+
+                    j = hmResolution - 1;
+                    heights[j, i] = Mathf.Round(heights[j, i] * rounding) / rounding;
+                }
+                for (int j = 0; j < hmResolution; j++)
+                {
+                    var i = 0;
+                    heights[j, i] = Mathf.Round(heights[j, i] * rounding) / rounding;
+
+                    i = hmResolution - 1;
+                    heights[j, i] = Mathf.Round(heights[j, i] * rounding) / rounding;
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+
+        [MenuItem("Cuku/Terrain/Data/RecalculateBorderHeights")]
+        static void RecalculateBorderHeights()
+        {
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+
+                var position = terrain.GetPosition();
+                var size = terrain.terrainData.size;
+                var hmResolution = terrain.terrainData.heightmapResolution;
+                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+
+                for (int i = 0; i < hmResolution; i++)
+                {
+                    var j = 0;
+                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
+
+                    j = hmResolution - 1;
+                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
+                }
+                for (int j = 0; j < hmResolution; j++)
+                {
+                    var i = 0;
+                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
+
+                    i = hmResolution - 1;
+                    heights[j, i] = GetHeight(position, size, hmResolution, i, j);
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+
+        [MenuItem("Cuku/Terrain/Data/NormalizeHeights")]
+        static void NormalizeHeights()
+        {
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+
+                var hmResolution = terrain.terrainData.heightmapResolution;
+                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+                var maxHeight = heights.Cast<float>().Max();
+
+                terrain.terrainData.size = Vector3.Scale(terrain.terrainData.size, new Vector3(1, maxHeight, 1));
+
+                for (int i = 0; i < hmResolution; i++)
+                {
+                    for (int j = 0; j < hmResolution; j++)
+                    {
+                        heights[j, i] /= maxHeight;
+                    }
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+
+        static float GetHeight(Vector3 position, Vector3 size, int hmResolution, int i, int j)
+        {
+            var posX = size.x * i / (hmResolution - 1) + position.x;
+            var posZ = size.z * j / (hmResolution - 1) + position.z;
+            var point = new Vector3(posX, 0, posZ);
+            var height = point.GetHitTerrainHeight();
+            return height / size.y;
+        }
+        #endregion
     }
 }
