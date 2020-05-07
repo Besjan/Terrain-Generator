@@ -52,7 +52,7 @@
         }
 
         [MenuItem("Cuku/Terrain/Data/Normalize Heights")]
-        static void NaximizeHeights()
+        static void NormalizeHeights()
         {
             float maxHeight = TerrainSettings.MaxTerrainHeight;
 
