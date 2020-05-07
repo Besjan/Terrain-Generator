@@ -39,7 +39,6 @@
         public static string Magick;
 
         public const float MaxTerrainHeight = 130f;
-        public const float BorderRounding = 1000f;
 
         public struct Tile
         {
