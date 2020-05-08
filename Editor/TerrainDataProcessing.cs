@@ -51,35 +51,15 @@
             }
         }
 
-        [MenuItem("Cuku/Terrain/Data/Normalize Heights")]
-        static void NormalizeHeights()
+        [MenuItem("Cuku/Terrain/Data/Stitch Tiles")]
+        static void StitchTiles()
         {
-            float maxHeight = TerrainSettings.MaxTerrainHeight;
+            NormalizeHeights();
 
-            var terrains = GameObject.FindObjectsOfType<Terrain>();
-
-            for (int t = 0; t < terrains.Length; t++)
-            {
-                var terrain = terrains[t];
-
-                var hmResolution = terrain.terrainData.heightmapResolution;
-                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
-
-                var scale = terrain.terrainData.size.y / maxHeight;
-                terrain.terrainData.size = new Vector3(terrain.terrainData.size.x, maxHeight, terrain.terrainData.size.z);
-
-                for (int i = 0; i < hmResolution; i++)
-                {
-                    for (int j = 0; j < hmResolution; j++)
-                    {
-                        heights[j, i] *= scale;
-                    }
-                }
-
-                terrain.terrainData.SetHeights(0, 0, heights);
-            }
+            RoundBorderHeights();
         }
 
+        #region Create Data
         static void CreateTilesData(string filePath)
         {
             Vector2Int patchLonLat = filePath.GetLonLat();
@@ -249,5 +229,70 @@
 
             return heights;
         }
+        #endregion
+
+        #region Stitch Tiles
+        static void NormalizeHeights()
+        {
+            float maxHeight = TerrainSettings.MaxTerrainHeight;
+
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+
+                var hmResolution = terrain.terrainData.heightmapResolution;
+                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+
+                var scale = terrain.terrainData.size.y / maxHeight;
+                terrain.terrainData.size = new Vector3(terrain.terrainData.size.x, maxHeight, terrain.terrainData.size.z);
+
+                for (int i = 0; i < hmResolution; i++)
+                {
+                    for (int j = 0; j < hmResolution; j++)
+                    {
+                        heights[j, i] *= scale;
+                    }
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+
+        static void RoundBorderHeights()
+        {
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            var rounding = TerrainSettings.BorderRounding;
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+
+                var hmResolution = terrain.terrainData.heightmapResolution;
+                var heights = terrain.terrainData.GetHeights(0, 0, hmResolution, hmResolution);
+
+                for (int i = 0; i < hmResolution; i++)
+                {
+                    var j = 0;
+                    heights[j, i] = Mathf.Round(heights[j, i] * rounding) / rounding;
+
+                    j = hmResolution - 1;
+                    heights[j, i] = Mathf.Round(heights[j, i] * rounding) / rounding;
+                }
+                for (int j = 0; j < hmResolution; j++)
+                {
+                    var i = 0;
+                    heights[j, i] = Mathf.Round(heights[j, i] * rounding) / rounding;
+
+                    i = hmResolution - 1;
+                    heights[j, i] = Mathf.Round(heights[j, i] * rounding) / rounding;
+                }
+
+                terrain.terrainData.SetHeights(0, 0, heights);
+            }
+        }
+        #endregion
     }
 }
