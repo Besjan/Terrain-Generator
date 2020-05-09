@@ -9,3 +9,4 @@
 - [OSGeo4W](https://trac.osgeo.org/osgeo4w/)
 - [ImageMagick](https://www.imagemagick.org/)
 - [MicroSplat - Global Texturing](https://assetstore.unity.com/packages/tools/terrain/microsplat-global-texturing-96482)
+- [MessagePack](https://github.com/neuecc/MessagePack-CSharp)
