@@ -34,7 +34,7 @@
                 var bytes = File.ReadAllBytes(file);
                 var heights = MessagePackSerializer.Deserialize<float[,]>(bytes);
 
-                var terrainData = CreateTerrainData(heights);
+                var terrainData = CreateTerrainData(heights, normalize: false);
                 var path = Path.GetFileNameWithoutExtension(file).GetTerrainDataPath();
                 AssetDatabase.CreateAsset(terrainData, path);
                 AssetDatabase.Refresh();
@@ -45,8 +45,6 @@
         static void CreateHeightmapData()
         {
             var terrainsData = Resources.LoadAll<TerrainData>(TerrainSettings.TerrainDataPath);
-            terrainsData = terrainsData.OrderBy(td => td.name.GetTileXZIdFromName().x)
-                .ThenBy(td => td.name.GetTileXZIdFromName().y).ToArray();
 
             for (int i = 0; i < terrainsData.Length; i++)
             {
@@ -227,20 +225,23 @@
             }
         }
 
-        static TerrainData CreateTerrainData(float[,] heights, float heightSampleDistance = 1)
+        static TerrainData CreateTerrainData(float[,] heights, float heightSampleDistance = 1, bool normalize = true)
         {
             var maxHeight = heights.Cast<float>().Max();
-            heights = NormalizeHeights(heights, maxHeight);
+
+            if (normalize)
+            {
+                heights = NormalizeHeights(heights, maxHeight);
+            }
 
             Debug.Assert((heights.GetLength(0) == heights.GetLength(1)) && (maxHeight >= 0) && (heightSampleDistance >= 0));
 
-            // Create the TerrainData.
             var terrainData = new TerrainData();
             terrainData.heightmapResolution = heights.GetLength(0);
 
             var terrainWidth = (terrainData.heightmapResolution - 1) * heightSampleDistance;
 
-            // If maxHeight is 0, leave all the heights in terrainData at 0 and make the vertical size of the terrain 1 to ensure valid AABBs.
+            // If maxHeight is 0, leave all the heights in terrainData at 0 and make the vertical size of the terrain 1 to ensure valid AABBs
             if (Mathf.Approximately(maxHeight, 0))
             {
                 terrainData.size = new Vector3(terrainWidth, 1, terrainWidth);
