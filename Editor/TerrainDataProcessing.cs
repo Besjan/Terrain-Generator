@@ -6,11 +6,12 @@
     using System.IO;
     using System;
     using System.Linq;
+	using MessagePack;
 
-    public static class TerrainDataProcessing
+	public static class TerrainDataProcessing
     {
-        [MenuItem("Cuku/Terrain/Data/Create Data")]
-        static void CreateData()
+        [MenuItem("Cuku/Terrain/Data/Create Terrain Data From Points")]
+        static void CreateTerrainDataFromPoints()
         {
             var filePath = Directory.GetFiles(TerrainSettings.SourceTerrainPointsPath, "*.txt")[0];
 
@@ -20,6 +21,45 @@
             }
 
             CreateTilesData(filePath);
+        }
+
+        [MenuItem("Cuku/Terrain/Data/Create Terrain Data From Heightmap")]
+        static void CreateTerrainDataFromHeightmap()
+        {
+            var files = Directory.GetFiles(TerrainSettings.HeightmapsPath, "*" + TerrainSettings.HeightmapFormat);
+
+            foreach (var file in files)
+            {
+                var bytes = File.ReadAllBytes(file);
+                var heights = MessagePackSerializer.Deserialize<float[,]>(bytes);
+
+                var terrainData = CreateTerrainData(heights);
+                var path = Path.GetFileNameWithoutExtension(file).GetTerrainDataPath();
+                AssetDatabase.CreateAsset(terrainData, path);
+                AssetDatabase.Refresh();
+            }
+        }
+
+        [MenuItem("Cuku/Terrain/Data/Create Heightmap Data")]
+        static void CreateHeightmapData()
+        {
+            var terrainsData = Resources.LoadAll<TerrainData>(TerrainSettings.TerrainDataPath);
+            terrainsData = terrainsData.OrderBy(td => td.name.GetTileXZIdFromName().x)
+                .ThenBy(td => td.name.GetTileXZIdFromName().y).ToArray();
+
+            for (int i = 0; i < terrainsData.Length; i++)
+            {
+                var hmResolution = terrainsData[i].heightmapResolution;
+                var heights = terrainsData[i].GetHeights(0, 0, hmResolution, hmResolution);
+
+                var path = Path.Combine(TerrainSettings.HeightmapsPath, 
+                    terrainsData[i].name + TerrainSettings.HeightmapFormat);
+
+                var bytes = MessagePackSerializer.Serialize(heights);
+                File.WriteAllBytes(path, bytes);
+
+                return;
+            }
         }
 
         [MenuItem("Cuku/Terrain/Data/Create Tiles")]
@@ -53,9 +93,9 @@
         [MenuItem("Cuku/Terrain/Data/Stitch Tiles")]
         static void StitchTiles()
         {
-            NormalizeHeights();
+            NormalizeTilesHeights();
 
-            RoundBorderHeights();
+            RoundBorderHeightsPrecision();
         }
 
         #region Create Data
@@ -88,7 +128,7 @@
             {
                 var tile = tiles[i];
                 var terrainData = CreateTerrainData(tile.Heights);
-                AssetDatabase.CreateAsset(terrainData, tile.Id.GetTerrainDataName());
+                AssetDatabase.CreateAsset(terrainData, tile.Id.GetTerrainDataPath());
                 AssetDatabase.Refresh();
 
                 tile.Heights = null;
@@ -100,7 +140,7 @@
             var completedPath = Path.Combine(TerrainSettings.CompletedTerrainPointsPath, Path.GetFileName(filePath));
             File.Move(filePath, completedPath);
 
-            CreateData();
+            CreateTerrainDataFromPoints();
         }
 
         static List<TerrainSettings.Tile> GetRelatedTilesData(this Vector2Int patchLonLat)
@@ -231,7 +271,7 @@
         #endregion
 
         #region Stitch Tiles
-        static void NormalizeHeights()
+        static void NormalizeTilesHeights()
         {
             float maxHeight = TerrainSettings.MaxTerrainHeight;
 
@@ -259,7 +299,7 @@
             }
         }
 
-        static void RoundBorderHeights()
+        static void RoundBorderHeightsPrecision()
         {
             var terrains = GameObject.FindObjectsOfType<Terrain>();
 

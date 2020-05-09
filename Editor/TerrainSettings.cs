@@ -8,10 +8,11 @@
     public static class TerrainSettings
     {
 		#region Properties
-		public const string ResourcesPath = "Assets/Resources/";
+		public const string ResourcesPath = "Assets/Cuku/Content/Resources/";
 
         public const string SourceTerrainPointsPath = "Assets/StreamingAssets/SourceTerrainPoints";
         public const string CompletedTerrainPointsPath = "Assets/StreamingAssets/CompletedTerrainPoints";
+        public const string HeightmapsPath = "Assets/StreamingAssets/Heightmaps";
 
         public const string TerrainDataPath = "TerrainData/";
         public const string TerrainTexturesPath = "TerrainTextures/";
@@ -40,6 +41,8 @@
 
         public const float MaxTerrainHeight = 123f;
         public const float BorderRounding = 1000f;
+
+        public const string HeightmapFormat = ".cukuhm";
 
         public struct Tile
         {
@@ -107,7 +110,7 @@
             return new Vector2Int(Convert.ToInt32(idXZ[0]), Convert.ToInt32(idXZ[1])) * (HeightmapResolution - 1);
         }
 
-        public static string GetTerrainDataName(this string id)
+        public static string GetTerrainDataPath(this string id)
         {
             return string.Format("{0}{1}{2}.asset", ResourcesPath, TerrainDataPath, id);
         }
