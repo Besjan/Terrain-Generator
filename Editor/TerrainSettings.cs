@@ -12,7 +12,6 @@
 
         public const string SourceTerrainPointsPath = "Assets/StreamingAssets/SourceTerrainPoints";
         public const string CompletedTerrainPointsPath = "Assets/StreamingAssets/CompletedTerrainPoints";
-        public const string HeightmapsPath = "Assets/StreamingAssets/Heightmaps";
 
         public const string TerrainDataPath = "TerrainData/";
         public const string TerrainTexturesPath = "TerrainTextures/";
@@ -42,6 +41,7 @@
         public const float MaxTerrainHeight = 123f;
         public const float BorderRounding = 1000f;
 
+        public static string HeightmapsPath;
         public const string HeightmapFormat = ".cukuhm";
 
         public struct Tile
@@ -64,6 +64,9 @@
             TileResolution = (HeightmapResolution - 1) * PatchResolution / PatchSize;
 
             Magick = Path.Combine(new string[] { projectPath, "ImageMagick", "magick.exe" });
+
+            HeightmapsPath = Path.Combine(projectPath, "Heightmaps");
+            if (!Directory.Exists(HeightmapsPath)) Directory.CreateDirectory(HeightmapsPath);
         }
 
         public static Vector2Int GetLonLat(this string filePath)

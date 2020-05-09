@@ -58,8 +58,6 @@
 
                 var bytes = MessagePackSerializer.Serialize(heights);
                 File.WriteAllBytes(path, bytes);
-
-                return;
             }
         }
 
@@ -88,6 +86,20 @@
                 tileTerrain.groupingID = terrainGroup.GroupID;
                 tileTerrain.terrainData = terrainsData[i];
                 tile.GetComponent<TerrainCollider>().terrainData = terrainsData[i];
+            }
+        }
+
+        [MenuItem("Cuku/Terrain/Data/Create Tiles With Max Height")]
+        static void CreateTilesWithMaxHeight()
+        {
+            CreateTiles();
+
+            var terrains = GameObject.FindObjectsOfType<Terrain>();
+
+            for (int t = 0; t < terrains.Length; t++)
+            {
+                var terrain = terrains[t];
+                terrain.terrainData.size = new Vector3(terrain.terrainData.size.x, TerrainSettings.MaxTerrainHeight, terrain.terrainData.size.z);
             }
         }
 
