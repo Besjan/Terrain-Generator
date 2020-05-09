@@ -4,8 +4,9 @@
 	using System.IO;
 	using UnityEngine;
     using Cuku.Utilities;
+	using MessagePack;
 
-    public static class TerrainSettings
+	public static class TerrainSettings
     {
 		#region Properties
 		public const string ResourcesPath = "Assets/Cuku/Content/Resources/";
@@ -50,9 +51,18 @@
             public float[,] Heights;
             public int[] Bounds;
         }
-		#endregion
 
-		static TerrainSettings()
+        [MessagePackObject]
+        public struct Heightmap
+        {
+            [Key(0)]
+            public float TerrainHeight;
+            [Key(1)]
+            public float[,] Heights;
+        }
+        #endregion
+
+        static TerrainSettings()
         {
             var dataPath = Application.dataPath.Replace(@"/", @"\");
             var projectPath = Directory.GetParent(dataPath).ToString();

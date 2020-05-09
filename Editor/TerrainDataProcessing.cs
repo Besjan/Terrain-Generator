@@ -32,9 +32,11 @@
             foreach (var file in files)
             {
                 var bytes = File.ReadAllBytes(file);
-                var heights = MessagePackSerializer.Deserialize<float[,]>(bytes);
+                var heightmap = MessagePackSerializer.Deserialize<TerrainSettings.Heightmap>(bytes);
 
-                var terrainData = CreateTerrainData(heights, normalize: false);
+                var terrainData = CreateTerrainData(heightmap.Heights, normalize: false);
+                terrainData.size = new Vector3(terrainData.size.x, heightmap.TerrainHeight, terrainData.size.z);
+
                 var path = Path.GetFileNameWithoutExtension(file).GetTerrainDataPath();
                 AssetDatabase.CreateAsset(terrainData, path);
                 AssetDatabase.Refresh();
@@ -54,7 +56,12 @@
                 var path = Path.Combine(TerrainSettings.HeightmapsPath, 
                     terrainsData[i].name + TerrainSettings.HeightmapFormat);
 
-                var bytes = MessagePackSerializer.Serialize(heights);
+                var heightmap = new TerrainSettings.Heightmap()
+                {
+                    TerrainHeight = terrainsData[i].size.y,
+                    Heights = heights
+                };
+                var bytes = MessagePackSerializer.Serialize(heightmap);
                 File.WriteAllBytes(path, bytes);
             }
         }
@@ -84,20 +91,6 @@
                 tileTerrain.groupingID = terrainGroup.GroupID;
                 tileTerrain.terrainData = terrainsData[i];
                 tile.GetComponent<TerrainCollider>().terrainData = terrainsData[i];
-            }
-        }
-
-        [MenuItem("Cuku/Terrain/Data/Create Tiles With Max Height")]
-        static void CreateTilesWithMaxHeight()
-        {
-            CreateTiles();
-
-            var terrains = GameObject.FindObjectsOfType<Terrain>();
-
-            for (int t = 0; t < terrains.Length; t++)
-            {
-                var terrain = terrains[t];
-                terrain.terrainData.size = new Vector3(terrain.terrainData.size.x, TerrainSettings.MaxTerrainHeight, terrain.terrainData.size.z);
             }
         }
 
