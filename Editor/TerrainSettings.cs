@@ -27,23 +27,27 @@
         public const int PatchResolution = 10000;
         public const int PatchSize = 2000;
 
-        public static string SourceImagesPath;
-        public const string ImageFormat = ".ecw";
-        public const string ImageConversionCommand = "gdal_translate -of JPEG -a_srs EPSG:25833";
-
-        public static int TileResolution;
-        public const int TextureResolution = 16384;
-        public static string TexturesPath;
-        public const string TextureFormat = ".jpg";
-        public static string[] TextureNameDirt = new string[] { "dop20rgb_", "_2_be_2019" };
-
-        public static string Magick;
-
         public const float MaxTerrainHeight = 123f;
         public const float BorderRounding = 1000f;
 
         public static string HeightmapsPath;
         public const string HeightmapFormat = ".cukuhm";
+
+        public const string SourceFormat = ".ecw";
+        public const string ConvertedFormat = ".tif";
+        public const string TextureFormat = ".jpg";
+
+        public static string SourcePath;
+        public static string ConvertedPath;
+        public static string TexturesPath;
+
+        public const string ConversionCommand = "gdal_translate -of GTiff -co TARGET=0 -a_srs EPSG:25833";
+        public static string[] NameFilters = new string[] { "dop20rgb_", "_2_be_2019" };
+
+        public static int TileResolution;
+        public const int TextureResolution = 16384;
+
+        public static string Magick;
 
         public struct Tile
         {
@@ -66,16 +70,19 @@
         {
             var dataPath = Application.dataPath.Replace(@"/", @"\");
             var projectPath = Directory.GetParent(dataPath).ToString();
+            var terrainPath = "Terrain";
 
-            SourceImagesPath = Path.Combine(projectPath, "SourceImages");
-            TexturesPath = Path.Combine(projectPath, "TerrainTextures");
+            SourcePath = Path.Combine(projectPath, terrainPath, "SourceImages");
+            TexturesPath = Path.Combine(projectPath, terrainPath, "TerrainTextures");
             if (!Directory.Exists(TexturesPath)) Directory.CreateDirectory(TexturesPath);
+            ConvertedPath = Path.Combine(projectPath, terrainPath, "Converted");
+            if (!Directory.Exists(ConvertedPath)) Directory.CreateDirectory(ConvertedPath);
 
             TileResolution = (HeightmapResolution - 1) * PatchResolution / PatchSize;
 
             Magick = Path.Combine(new string[] { projectPath, "ImageMagick", "magick.exe" });
 
-            HeightmapsPath = Path.Combine(projectPath, "Heightmaps");
+            HeightmapsPath = Path.Combine(projectPath, terrainPath, "Heightmaps");
             if (!Directory.Exists(HeightmapsPath)) Directory.CreateDirectory(HeightmapsPath);
         }
 

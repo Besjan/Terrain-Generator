@@ -7,6 +7,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System;
+    using Sirenix.Utilities;
 
     public static class TerrainTextureProcessing
     {
@@ -14,36 +15,35 @@
         static void ConvertSatelliteImages()
         {
             // Convert original images
-            var images = Directory.GetFiles(TerrainSettings.SourceImagesPath, "*" + TerrainSettings.ImageFormat);
+            var images = Directory.GetFiles(TerrainSettings.SourcePath, "*" + TerrainSettings.SourceFormat);
             foreach (var image in images)
             {
-                var texturePath = Path.Combine(TerrainSettings.TexturesPath, Path.GetFileNameWithoutExtension(image) + TerrainSettings.TextureFormat);
-                var convert = string.Format(@"{0} {1} {2}", TerrainSettings.ImageConversionCommand, image, texturePath);
-
+                var texturePath = Path.Combine(TerrainSettings.ConvertedPath, Path.GetFileNameWithoutExtension(image) + TerrainSettings.ConvertedFormat);
+                var convert = string.Format(@"{0} {1} {2}", TerrainSettings.ConversionCommand, image, texturePath);
+                Debug.Log(convert);
+                return;
                 convert.ExecutePowerShellCommand(true);
             }
 
             // Delete source images
-            Directory.Delete(TerrainSettings.SourceImagesPath, true);
+            Directory.Delete(TerrainSettings.SourcePath, true);
 
             // Cleanup texture names
-            var textures = Directory.GetFiles(TerrainSettings.TexturesPath, "*" + TerrainSettings.TextureFormat);
+            var textures = Directory.GetFiles(TerrainSettings.ConvertedPath, "*" + TerrainSettings.ConvertedFormat);
             foreach (var texture in textures)
             {
                 var newName = texture;
-                foreach (var dirt in TerrainSettings.TextureNameDirt)
+                foreach (var filter in TerrainSettings.NameFilters)
                 {
-                    newName = newName.Replace(dirt, string.Empty);
+                    newName = newName.Replace(filter, string.Empty);
                 }
                 File.Move(texture, newName);
             }
 
-            // Cleanup meta files
-            var metaFiles = Directory.GetFiles(TerrainSettings.TexturesPath, "*.xml");
-            foreach (var metaFile in metaFiles)
-            {
-                File.Delete(metaFile);
-            }
+            // Cleanup other files
+            var metaFiles = Directory.GetFiles(TerrainSettings.ConvertedPath)
+                .Where(file => !file.EndsWith(TerrainSettings.ConvertedFormat))
+                .ForEach(file => File.Delete(file));
         }
 
         [MenuItem("Cuku/Terrain/Texture/Combine Textures")]
