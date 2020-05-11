@@ -20,8 +20,7 @@
             {
                 var texturePath = Path.Combine(TerrainSettings.ConvertedPath, Path.GetFileNameWithoutExtension(image) + TerrainSettings.ConvertedFormat);
                 var convert = string.Format(@"{0} {1} {2}", TerrainSettings.ConversionCommand, image, texturePath);
-                Debug.Log(convert);
-                return;
+
                 convert.ExecutePowerShellCommand(true);
             }
 
