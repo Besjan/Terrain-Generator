@@ -82,7 +82,7 @@
 
             Magick = Path.Combine(new string[] { projectPath, "ImageMagick", "magick.exe" });
 
-            HeightmapsPath = Path.Combine(projectPath, terrainPath, terrainPath, "Heightmaps");
+            HeightmapsPath = Path.Combine(projectPath, terrainPath, "Heightmaps");
             if (!Directory.Exists(HeightmapsPath)) Directory.CreateDirectory(HeightmapsPath);
         }
 
