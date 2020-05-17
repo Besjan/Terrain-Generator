@@ -34,12 +34,11 @@
         public const string HeightmapFormat = ".cukuhm";
 
         public const string SourceFormat = ".ecw";
-        public const string ConvertedFormat = ".tif";
-        public const string TextureFormat = ".jpg";
+        public const string ImageFormat = ".tif";
 
         public static string SourcePath;
         public static string ConvertedPath;
-        public static string TexturesPath;
+        public static string CombinedPath;
 
         public const string ConversionCommand = "gdal_translate -of GTiff -co TARGET=0 -a_srs EPSG:25833";
         public static string[] NameFilters = new string[] { "dop20rgb_", "_2_be_2019" };
@@ -72,15 +71,15 @@
             var projectPath = Directory.GetParent(dataPath).ToString();
             var terrainPath = "Terrain";
 
-            SourcePath = Path.Combine(projectPath, terrainPath, "SourceImages");
-            TexturesPath = Path.Combine(projectPath, terrainPath, "TerrainTextures");
-            if (!Directory.Exists(TexturesPath)) Directory.CreateDirectory(TexturesPath);
+            SourcePath = Path.Combine(projectPath, terrainPath, "Source");
             ConvertedPath = Path.Combine(projectPath, terrainPath, "Converted");
             if (!Directory.Exists(ConvertedPath)) Directory.CreateDirectory(ConvertedPath);
+            CombinedPath = Path.Combine(projectPath, terrainPath, "Combined");
+            if (!Directory.Exists(CombinedPath)) Directory.CreateDirectory(CombinedPath);
 
             TileResolution = (HeightmapResolution - 1) * PatchResolution / PatchSize;
 
-            Magick = Path.Combine(new string[] { projectPath, "ImageMagick", "magick.exe" });
+            Magick = Path.Combine(new string[] { projectPath, terrainPath, "ImageMagick", "magick.exe" });
 
             HeightmapsPath = Path.Combine(projectPath, terrainPath, "Heightmaps");
             if (!Directory.Exists(HeightmapsPath)) Directory.CreateDirectory(HeightmapsPath);

@@ -7,7 +7,6 @@
     using System.Collections.Generic;
     using System.Linq;
     using System;
-    using Sirenix.Utilities;
 
     public static class TerrainTextureProcessing
     {
@@ -18,17 +17,14 @@
             var images = Directory.GetFiles(TerrainSettings.SourcePath, "*" + TerrainSettings.SourceFormat);
             foreach (var image in images)
             {
-                var texturePath = Path.Combine(TerrainSettings.ConvertedPath, Path.GetFileNameWithoutExtension(image) + TerrainSettings.ConvertedFormat);
+                var texturePath = Path.Combine(TerrainSettings.ConvertedPath, Path.GetFileNameWithoutExtension(image) + TerrainSettings.ImageFormat);
                 var convert = string.Format(@"{0} {1} {2}", TerrainSettings.ConversionCommand, image, texturePath);
 
                 convert.ExecutePowerShellCommand(true);
             }
 
-            // Delete source images
-            Directory.Delete(TerrainSettings.SourcePath, true);
-
             // Cleanup texture names
-            var textures = Directory.GetFiles(TerrainSettings.ConvertedPath, "*" + TerrainSettings.ConvertedFormat);
+            var textures = Directory.GetFiles(TerrainSettings.ConvertedPath, "*" + TerrainSettings.ImageFormat);
             foreach (var texture in textures)
             {
                 var newName = texture;
@@ -38,15 +34,10 @@
                 }
                 File.Move(texture, newName);
             }
-
-            // Cleanup other files
-            var metaFiles = Directory.GetFiles(TerrainSettings.ConvertedPath)
-                .Where(file => !file.EndsWith(TerrainSettings.ConvertedFormat))
-                .ForEach(file => File.Delete(file));
         }
 
-        [MenuItem("Cuku/Terrain/Texture/Combine Textures")]
-        static void CombineTextures()
+        [MenuItem("Cuku/Terrain/Texture/Combine Images")]
+        static void CombineImages()
         {
             // Group textures in tiles as terrain data
             var tilePositions = new List<Vector2Int>();
@@ -63,9 +54,8 @@
             var patchRatio = TerrainSettings.PatchResolution * 1.0f / TerrainSettings.PatchSize;
 
             var tiles = new Dictionary<string, Dictionary<string, Vector2Int>>();
-            var texturesPath = TerrainSettings.TexturesPath;
-            var images = Directory.GetFiles(texturesPath, "*" + TerrainSettings.TextureFormat);
-
+            var images = Directory.GetFiles(TerrainSettings.ConvertedPath, "*" + TerrainSettings.ImageFormat);
+            
             foreach (var image in images)
             {
                 Vector2Int lonLat = image.GetLonLat();
@@ -119,7 +109,7 @@
                 }
             }
 
-            // Combine textures to tiles
+            // Combine images to tiles
             foreach (var tile in tiles)
             {
                 var commandComposite = string.Format("convert -size {0}x{0} canvas:white ", TerrainSettings.TileResolution);
@@ -130,21 +120,18 @@
                         image.Key, image.Value[0] >= 0 ? "+" : "", image.Value[0], image.Value[1] >= 0 ? "+" : "", image.Value[1]);
                 }
 
-                var tileName = Path.Combine(TerrainSettings.TexturesPath, tile.Key + TerrainSettings.TextureFormat);
+                var tileName = Path.Combine(TerrainSettings.CombinedPath, tile.Key + TerrainSettings.ImageFormat);
                 commandComposite += tileName;
 
                 commandComposite.DoMagick(true);
             }
+        }
 
-            // Cleanup single texture files
-            foreach (var image in images)
-            {
-                File.Delete(image);
-            }
-
-            // Resize tile textures
+        [MenuItem("Cuku/Terrain/Texture/Resize Images")]
+        private static void ResizeImages()
+        {
             var commandResize = string.Format("mogrify -resize {0}x{0} {1}\\*{2}",
-                TerrainSettings.TextureResolution, TerrainSettings.TexturesPath, TerrainSettings.TextureFormat);
+                TerrainSettings.TextureResolution, TerrainSettings.CombinedPath, TerrainSettings.ImageFormat);
 
             commandResize.DoMagick();
         }
