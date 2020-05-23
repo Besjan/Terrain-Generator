@@ -16,6 +16,7 @@
 
         public const string TerrainDataPath = "TerrainData/";
         public const string TerrainTexturesPath = "TerrainTextures/";
+        public const string TerrainBiomeMasksPath = "TerrainBiomeMasks/";
         public const string MicroSplatMaterialPath = "MicroSplatData/MicroSplat";
 
         public const char IdSeparator = '_';
@@ -41,7 +42,7 @@
         public static string CombinedPath;
 
         public const string ConversionCommand = "gdal_translate -of GTiff -co TARGET=0 -a_srs EPSG:25833";
-        public static string[] NameFilters = new string[] { "dop20rgb_", "_2_be_2019" };
+        public static string[] NameFilters = new string[] {"dop20_", "dop20rgb_", "_2_be_2019" };
 
         public static int TileResolution;
         public const int TextureResolution = 16384;
