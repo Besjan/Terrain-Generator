@@ -8,8 +8,8 @@
     public static class TerrainShading
     {
 #if __MICROSPLAT__
-		[MenuItem("Cuku/Terrain/Shading/Convert To MicroSplat Terrain")]
-		static void ConvertToMicroSplatTerrain()
+		[MenuItem("Cuku/Terrain/Shading/Apply MicroSplat Material")]
+		static void ApplyMicroSplatMaterial()
 		{
 			var material = Resources.Load<Material>(Path.Combine(TerrainSettings.TerrainDataPath, TerrainSettings.MicroSplatMaterialPath));
 			var terrains = GameObject.FindObjectsOfType<Terrain>();
