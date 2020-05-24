@@ -30,7 +30,7 @@
 		[MenuItem("Cuku/Terrain/Shading/Apply Tint Map")]
 		static void ApplyTintMap()
 		{
-			var textures = Resources.LoadAll<Texture2D>(TerrainSettings.TerrainTexturesPath);
+			var textures = Resources.LoadAll<Texture2D>(TerrainSettings.TerrainTintTexturesPath);
 			var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();
 
 			msTerrains[0].transform.parent.gameObject.SetActive(false);
@@ -48,7 +48,7 @@
 		[MenuItem("Cuku/Terrain/Shading/Apply Biome Mask")]
 		static void ApplyBiomeMask()
 		{
-			var textures = Resources.LoadAll<Texture2D>(TerrainSettings.TerrainBiomeMasksPath);
+			var textures = Resources.LoadAll<Texture2D>(TerrainSettings.TerrainBiomeMapsPath);
 			var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();
 
 			msTerrains[0].transform.parent.gameObject.SetActive(false);

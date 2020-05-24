@@ -17,6 +17,7 @@
         public const string TerrainDataPath = "TerrainData/";
         public const string TerrainTexturesPath = "TerrainTextures/";
         public const string TerrainBiomeMasksPath = "TerrainBiomeMasks/";
+        public const string TerrainBiomeMapsPath = "TerrainBiomeMaps/";
         public const string MicroSplatMaterialPath = "MicroSplatData/MicroSplat";
 
         public const char IdSeparator = '_';
