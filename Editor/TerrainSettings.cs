@@ -40,6 +40,7 @@
         public static string SourcePath;
         public static string ConvertedPath;
         public static string CombinedPath;
+        public static string ModulatedPath;
 
         public const string ConversionCommand = "gdal_translate -of GTiff -co TARGET=0 -a_srs EPSG:25833";
         public static string[] NameFilters = new string[] {"dop20_", "dop20rgb_", "_2_be_2019" };
@@ -77,6 +78,8 @@
             if (!Directory.Exists(ConvertedPath)) Directory.CreateDirectory(ConvertedPath);
             CombinedPath = Path.Combine(projectPath, terrainPath, "Combined");
             if (!Directory.Exists(CombinedPath)) Directory.CreateDirectory(CombinedPath);
+            ModulatedPath = Path.Combine(projectPath, terrainPath, "Modulated");
+            if (!Directory.Exists(ModulatedPath)) Directory.CreateDirectory(ModulatedPath);
 
             TileResolution = (HeightmapResolution - 1) * PatchResolution / PatchSize;
 

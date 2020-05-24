@@ -135,5 +135,23 @@
 
             commandResize.DoMagick();
         }
+
+        /// <summary>
+        /// Modulate biome mask images in HSL space to better emphasize channels.
+        /// </summary>
+        [MenuItem("Cuku/Terrain/Texture/Modulate Images")]
+        static void ModulateImages()
+        {
+            var images = Directory.GetFiles(TerrainSettings.CombinedPath, "*" + TerrainSettings.ImageFormat);
+
+            foreach (var image in images)
+            {
+                var modulatedImagePath = Path.Combine(TerrainSettings.ModulatedPath, Path.GetFileName(image));
+
+                var commandModulate = string.Format("convert {0} -modulate 100,200 {1}", image, modulatedImagePath);
+
+                commandModulate.DoMagick(true);
+            }
+        }
     }
 }
