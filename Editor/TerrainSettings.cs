@@ -15,8 +15,7 @@
         public const string CompletedTerrainPointsPath = "Assets/StreamingAssets/CompletedTerrainPoints";
 
         public const string TerrainDataPath = "TerrainData/";
-        public const string TerrainTexturesPath = "TerrainTextures/";
-        public const string TerrainBiomeMasksPath = "TerrainBiomeMasks/";
+        public const string TerrainTintTexturesPath = "TerrainTintTextures/";
         public const string TerrainBiomeMapsPath = "TerrainBiomeMaps/";
         public const string MicroSplatMaterialPath = "MicroSplatData/MicroSplat";
 
@@ -41,7 +40,7 @@
         public static string SourcePath;
         public static string ConvertedPath;
         public static string CombinedPath;
-        public static string ModulatedPath;
+        public static string SaturatedPath;
 
         public const string ConversionCommand = "gdal_translate -of GTiff -co TARGET=0 -a_srs EPSG:25833";
         public static string[] NameFilters = new string[] {"dop20_", "dop20rgb_", "_2_be_2019" };
@@ -79,8 +78,8 @@
             if (!Directory.Exists(ConvertedPath)) Directory.CreateDirectory(ConvertedPath);
             CombinedPath = Path.Combine(projectPath, terrainPath, "Combined");
             if (!Directory.Exists(CombinedPath)) Directory.CreateDirectory(CombinedPath);
-            ModulatedPath = Path.Combine(projectPath, terrainPath, "Modulated");
-            if (!Directory.Exists(ModulatedPath)) Directory.CreateDirectory(ModulatedPath);
+            SaturatedPath = Path.Combine(projectPath, terrainPath, "Saturated");
+            if (!Directory.Exists(SaturatedPath)) Directory.CreateDirectory(SaturatedPath);
 
             TileResolution = (HeightmapResolution - 1) * PatchResolution / PatchSize;
 

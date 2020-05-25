@@ -137,16 +137,16 @@
         }
 
         /// <summary>
-        /// Modulate biome mask images in HSL space to better emphasize channels.
+        /// Saturate biome mask images to better emphasize colors
         /// </summary>
-        [MenuItem("Cuku/Terrain/Texture/Modulate Images")]
-        static void ModulateImages()
+        [MenuItem("Cuku/Terrain/Texture/Saturate Images")]
+        static void SaturateImages()
         {
             var images = Directory.GetFiles(TerrainSettings.CombinedPath, "*" + TerrainSettings.ImageFormat);
 
             foreach (var image in images)
             {
-                var modulatedImagePath = Path.Combine(TerrainSettings.ModulatedPath, Path.GetFileName(image));
+                var modulatedImagePath = Path.Combine(TerrainSettings.SaturatedPath, Path.GetFileName(image));
 
                 var commandModulate = string.Format("convert {0} -modulate 100,200 {1}", image, modulatedImagePath);
 
