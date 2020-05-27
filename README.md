@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-greed.svg)](LICENSE)
+
 ## Features
 - Generate Unity Terrain from DEM / DGM (1m grid) LiDAR point cloud data.
 
