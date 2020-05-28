@@ -18,9 +18,9 @@
             foreach (var image in images)
             {
                 var texturePath = Path.Combine(TerrainSettings.ConvertedPath, Path.GetFileNameWithoutExtension(image) + TerrainSettings.ImageFormat);
-                var convert = string.Format(@"{0} {1} {2}", TerrainSettings.ConversionCommand, image, texturePath);
+                var commandConvert = string.Format(@"{0} {1} {2}", TerrainSettings.ConversionCommand, image, texturePath);
 
-                convert.ExecutePowerShellCommand(true);
+                commandConvert.ExecutePowerShellCommand(true);
             }
 
             // Cleanup texture names
