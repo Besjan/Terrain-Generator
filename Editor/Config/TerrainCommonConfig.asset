@@ -9,8 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ec676cc90269294abe41eb56551ee13, type: 3}
-  m_Name: TerrainHeightmapConfig
+  m_Script: {fileID: 11500000, guid: 6cad93dbf8d552342a0157c79c05bdcc, type: 3}
+  m_Name: TerrainCommonConfig
   m_EditorClassIdentifier: 
   serializationData:
     SerializedFormat: 2
@@ -21,9 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  TerrainPointsPath: C:/Terrain/Points
-  PatchSize: 2000
-  TerrainDataPath: Assets/Content/Resources/TerrainData
-  HeightmapsPath: C:/Terrain/Heightmaps
-  TilePrefab: {fileID: 3300422891118371023, guid: 65320c3d08fac694eb0d457ee63aff47, type: 3}
-  TileStitchPrecision: 1000
+  CenterUTM: {fileID: 11400000, guid: a7b9f7530a4ddeb459c1c61febacd4b9, type: 2}
+  TerrainHeightRange: {fileID: 11400000, guid: 070f100b3fa1a18478be9bcb347e229f, type: 2}
+  HeightmapResolution: 4097

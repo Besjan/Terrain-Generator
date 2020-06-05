@@ -11,7 +11,7 @@
 		[MenuItem("Cuku/Terrain/Shading/Apply MicroSplat Material")]
 		static void ApplyMicroSplatMaterial()
 		{
-			var material = Resources.Load<Material>(Path.Combine(Utilities.TerrainDataPath, Utilities.MicroSplatMaterialPath));
+			var material = Resources.Load<Material>(Path.Combine(Utilities.TerrainDataPath, Utilities.MicroSplatDataPath));
 			var terrains = GameObject.FindObjectsOfType<Terrain>();
 
 			terrains[0].transform.parent.gameObject.SetActive(false);

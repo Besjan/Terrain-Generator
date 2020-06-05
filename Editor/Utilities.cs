@@ -21,14 +21,11 @@
         public const string TerrainDataPath = "TerrainData/";
 
 
-        // TODO: use also in Texture
-        public const int HeightmapResolution = 4097;
-
         public const int PatchSize = 2000;
 
         public const float MaxTerrainHeight = 123f;
 
-        public const float TileStitchPresision = 1000f;
+        public const float TileStitchPrecision = 1000f;
 
         public static string HeightmapsPath;
 
@@ -74,13 +71,15 @@
         public const string TintTexturesPath = "TerrainTintTextures/";
         public const string BiomeMapsPath = "TerrainBiomeMaps/";
 
-        public const string MicroSplatMaterialPath = "MicroSplatData/MicroSplat";
+        public const string MicroSplatDataPath = "MicroSplatData/MicroSplat";
 
         // Utilities
         public const char IdSeparator = '_';
 
-        // City
+        // Common / City
         public static Vector2Int CenterLonLat = new Vector2Int(392000, 5820000);
+
+        public const int HeightmapResolution = 4097;
         #endregion
 
         static Utilities()

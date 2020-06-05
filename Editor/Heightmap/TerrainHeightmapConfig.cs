@@ -1,5 +1,6 @@
 ﻿namespace Cuku.Terrain
 {
+	using Cuku.ScriptableObject;
 	using Sirenix.OdinInspector;
 
     public class TerrainHeightmapConfig : SerializedScriptableObject
@@ -17,9 +18,6 @@
 		[InfoBox("Folder path where terrain data is stored, must be inside Resources folder.", InfoMessageType.None)]
         public string TerrainDataPath;
 
-        [PropertySpace, VerticalGroup("Terrain Data"), ValueDropdown("heighmapResolutions")]
-        public int HeightmapResolution = 4097;
-
         [PropertySpace, VerticalGroup("Terrain Data"), FolderPath(AbsolutePath = true, RequireExistingPath = true)]
         [InfoBox("Folder path where heightmaps are stored and retrieved from.", InfoMessageType.None)]
         public string HeightmapsPath;
@@ -29,14 +27,7 @@
         public UnityEngine.GameObject TilePrefab;
 
         [PropertySpace, VerticalGroup("Terrain Tiles")]
-        [InfoBox("Doesn't have to be precise.", InfoMessageType.None)]
-        public const float MaxTerrainHeight = 123f;
-
-        [PropertySpace, VerticalGroup("Terrain Tiles")]
         [InfoBox("Values higher than 1000 don't make much difference.", InfoMessageType.None)]
-        public const float TileStitchPresision = 1000f;
-
-
-        private int[] heighmapResolutions = { 33, 65, 129, 257, 513, 1025, 2049, 4097 };
+        public float TileStitchPrecision = 1000f;
     }
 }

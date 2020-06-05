@@ -312,7 +312,7 @@
         {
             var terrains = GameObject.FindObjectsOfType<Terrain>();
 
-            var rounding = Utilities.TileStitchPresision;
+            var rounding = Utilities.TileStitchPrecision;
 
             for (int t = 0; t < terrains.Length; t++)
             {
