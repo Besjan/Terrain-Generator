@@ -14,7 +14,7 @@
         [MenuItem("Cuku/Terrain/Data/Create Terrain Data From Points")]
         static void CreateTerrainDataFromPoints()
         {
-            var filePath = Directory.GetFiles(TerrainSettings.SourceTerrainPointsPath, "*.txt")[0];
+            var filePath = Directory.GetFiles(TerrainSettings.TerrainPointsPath, "*.txt")[0];
 
             if (string.IsNullOrEmpty(filePath))
             {
@@ -27,7 +27,7 @@
         [MenuItem("Cuku/Terrain/Data/Create Terrain Data From Heightmap")]
         static void CreateTerrainDataFromHeightmap()
         {
-            var files = Directory.GetFiles(TerrainSettings.HeightmapsPath, "*" + TerrainSettings.HeightmapFormat);
+            var files = Directory.GetFiles(TerrainSettings.HeightmapsPath, "*.hm");
 
             foreach (var file in files)
             {
@@ -54,7 +54,7 @@
                 var heights = terrainsData[i].GetHeights(0, 0, hmResolution, hmResolution);
 
                 var path = Path.Combine(TerrainSettings.HeightmapsPath, 
-                    terrainsData[i].name + TerrainSettings.HeightmapFormat);
+                    terrainsData[i].name + ".hm");
 
                 var heightmap = new TerrainSettings.Heightmap()
                 {
@@ -99,7 +99,7 @@
         {
             NormalizeTilesHeights();
 
-            RoundBorderHeightsPrecision();
+            RoundBorderHeights();
 
             EvenBorderHeights();
         }
@@ -143,7 +143,7 @@
 
             tiles = null;
 
-            var completedPath = Path.Combine(TerrainSettings.CompletedTerrainPointsPath, Path.GetFileName(filePath));
+            var completedPath = Path.Combine(TerrainSettings.CombinedTerrainPointsPath, Path.GetFileName(filePath));
             File.Move(filePath, completedPath);
 
             CreateTerrainDataFromPoints();
@@ -308,11 +308,11 @@
             }
         }
 
-        static void RoundBorderHeightsPrecision()
+        static void RoundBorderHeights()
         {
             var terrains = GameObject.FindObjectsOfType<Terrain>();
 
-            var rounding = TerrainSettings.BorderRounding;
+            var rounding = TerrainSettings.TileStitchPresision;
 
             for (int t = 0; t < terrains.Length; t++)
             {

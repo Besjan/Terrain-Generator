@@ -9,46 +9,28 @@
 	public static class TerrainSettings
     {
 		#region Properties
-		public const string ResourcesPath = "Assets/Cuku/Content/Resources/";
+		// Heightmap
+        public const string ResourcesPath = "Assets/Cuku/Content/Resources/";
 
-        public const string SourceTerrainPointsPath = "Assets/StreamingAssets/SourceTerrainPoints";
-        public const string CompletedTerrainPointsPath = "Assets/StreamingAssets/CompletedTerrainPoints";
+        public const string TerrainPointsPath = "Assets/StreamingAssets/SourceTerrainPoints";
 
+        // TODO: create this folder under SourceTerrainPointsPath
+        public const string CombinedTerrainPointsPath = "Assets/StreamingAssets/CompletedTerrainPoints";
+
+        // TODO: use foldername
         public const string TerrainDataPath = "TerrainData/";
-        public const string TerrainTintTexturesPath = "TerrainTintTextures/";
-        public const string TerrainBiomeMapsPath = "TerrainBiomeMaps/";
-        public const string MicroSplatMaterialPath = "MicroSplatData/MicroSplat";
 
-        public const char IdSeparator = '_';
 
-        public static Vector2Int CenterLonLat = new Vector2Int(392000, 5820000);
-
+        // TODO: use also in Texture
         public const int HeightmapResolution = 4097;
 
-        public const int PatchResolution = 10000;
         public const int PatchSize = 2000;
 
         public const float MaxTerrainHeight = 123f;
-        public const float BorderRounding = 1000f;
+
+        public const float TileStitchPresision = 1000f;
 
         public static string HeightmapsPath;
-        public const string HeightmapFormat = ".cukuhm";
-
-        public const string SourceFormat = ".ecw";
-        public const string ImageFormat = ".tif";
-
-        public static string SourcePath;
-        public static string ConvertedPath;
-        public static string CombinedPath;
-        public static string SaturatedPath;
-
-        public const string ConversionCommand = "gdal_translate -of GTiff -co TARGET=0 -a_srs EPSG:25833";
-        public static string[] NameFilters = new string[] {"dop20_", "dop20rgb_", "_2_be_2019" };
-
-        public static int TileResolution;
-        public const int TextureResolution = 16384;
-
-        public static string Magick;
 
         public struct Tile
         {
@@ -65,6 +47,36 @@
             [Key(1)]
             public float[,] Heights;
         }
+
+        // Texture
+        public const string TerrainTintTexturesPath = "TerrainTintTextures/";
+        public const string TerrainBiomeMapsPath = "TerrainBiomeMaps/";
+
+        public const string SourceFormat = ".ecw";
+        public const string ImageFormat = ".tif";
+
+        public static string SourcePath;
+        public static string ConvertedPath;
+        public static string CombinedPath;
+        public static string SaturatedPath;
+
+        public const string ConversionCommand = "gdal_translate -of GTiff -co TARGET=0 -a_srs EPSG:25833";
+        public static string[] NameFilters = new string[] {"dop20_", "dop20rgb_", "_2_be_2019" };
+
+        public static int TileResolution;
+        public const int TextureResolution = 16384;
+        public const int PatchResolution = 10000;
+
+        public static string Magick;
+
+        // Shading
+        public const string MicroSplatMaterialPath = "MicroSplatData/MicroSplat";
+
+        // Utilities
+        public const char IdSeparator = '_';
+
+        // City
+        public static Vector2Int CenterLonLat = new Vector2Int(392000, 5820000);
         #endregion
 
         static TerrainSettings()
