@@ -4,7 +4,7 @@
 
     public class TerrainHeightmapConfig : SerializedScriptableObject
     {
-        [PropertySpace, Title("Point Data"), VerticalGroup("Point Data"), FolderPath(AbsolutePath = true)]
+        [PropertySpace, Title("Point Data"), VerticalGroup("Point Data"), FolderPath(AbsolutePath = true, RequireExistingPath = true)]
         [InfoBox("Folder path where original LiDAR points are stored in .txt format.", InfoMessageType.None)]
         public string TerrainPointsPath;
 
@@ -20,7 +20,7 @@
         [PropertySpace, VerticalGroup("Terrain Data"), ValueDropdown("heighmapResolutions")]
         public int HeightmapResolution = 4097;
 
-        [PropertySpace, VerticalGroup("Terrain Data"), FolderPath(AbsolutePath = true)]
+        [PropertySpace, VerticalGroup("Terrain Data"), FolderPath(AbsolutePath = true, RequireExistingPath = true)]
         [InfoBox("Folder path where heightmaps are stored and retrieved from.", InfoMessageType.None)]
         public string HeightmapsPath;
 

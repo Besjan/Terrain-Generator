@@ -6,7 +6,7 @@
     using Cuku.Utilities;
 	using MessagePack;
 
-	public static class TerrainSettings
+	public static class Utilities
     {
 		#region Properties
 		// Heightmap
@@ -32,6 +32,7 @@
 
         public static string HeightmapsPath;
 
+        // Utilities
         public struct Tile
         {
             public string Id;
@@ -39,6 +40,7 @@
             public int[] Bounds;
         }
 
+        // Utilities
         [MessagePackObject]
         public struct Heightmap
         {
@@ -49,9 +51,6 @@
         }
 
         // Texture
-        public const string TerrainTintTexturesPath = "TerrainTintTextures/";
-        public const string TerrainBiomeMapsPath = "TerrainBiomeMaps/";
-
         public const string SourceFormat = ".ecw";
         public const string ImageFormat = ".tif";
 
@@ -63,13 +62,18 @@
         public const string ConversionCommand = "gdal_translate -of GTiff -co TARGET=0 -a_srs EPSG:25833";
         public static string[] NameFilters = new string[] {"dop20_", "dop20rgb_", "_2_be_2019" };
 
-        public static int TileResolution;
         public const int TextureResolution = 16384;
         public const int PatchResolution = 10000;
 
         public static string Magick;
 
+        // Utilities
+        public static int TileResolution;
+
         // Shading
+        public const string TintTexturesPath = "TerrainTintTextures/";
+        public const string BiomeMapsPath = "TerrainBiomeMaps/";
+
         public const string MicroSplatMaterialPath = "MicroSplatData/MicroSplat";
 
         // Utilities
@@ -79,7 +83,7 @@
         public static Vector2Int CenterLonLat = new Vector2Int(392000, 5820000);
         #endregion
 
-        static TerrainSettings()
+        static Utilities()
         {
             var dataPath = Application.dataPath.Replace(@"/", @"\");
             var projectPath = Directory.GetParent(dataPath).ToString();

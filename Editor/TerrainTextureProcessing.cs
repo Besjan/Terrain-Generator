@@ -14,21 +14,21 @@
         static void ConvertSatelliteImages()
         {
             // Convert original images
-            var images = Directory.GetFiles(TerrainSettings.SourcePath, "*" + TerrainSettings.SourceFormat);
+            var images = Directory.GetFiles(Utilities.SourcePath, "*" + Utilities.SourceFormat);
             foreach (var image in images)
             {
-                var texturePath = Path.Combine(TerrainSettings.ConvertedPath, Path.GetFileNameWithoutExtension(image) + TerrainSettings.ImageFormat);
-                var commandConvert = string.Format(@"{0} {1} {2}", TerrainSettings.ConversionCommand, image, texturePath);
+                var texturePath = Path.Combine(Utilities.ConvertedPath, Path.GetFileNameWithoutExtension(image) + Utilities.ImageFormat);
+                var commandConvert = string.Format(@"{0} {1} {2}", Utilities.ConversionCommand, image, texturePath);
 
                 commandConvert.ExecutePowerShellCommand(true);
             }
 
             // Cleanup texture names
-            var textures = Directory.GetFiles(TerrainSettings.ConvertedPath, "*" + TerrainSettings.ImageFormat);
+            var textures = Directory.GetFiles(Utilities.ConvertedPath, "*" + Utilities.ImageFormat);
             foreach (var texture in textures)
             {
                 var newName = texture;
-                foreach (var filter in TerrainSettings.NameFilters)
+                foreach (var filter in Utilities.NameFilters)
                 {
                     newName = newName.Replace(filter, string.Empty);
                 }
@@ -41,9 +41,9 @@
         {
             // Group textures in tiles as terrain data
             var tilePositions = new List<Vector2Int>();
-            var terrainsData = Resources.LoadAll<TerrainData>(TerrainSettings.TerrainDataPath);
+            var terrainsData = Resources.LoadAll<TerrainData>(Utilities.TerrainDataPath);
 
-            var terrainSize = TerrainSettings.HeightmapResolution - 1;
+            var terrainSize = Utilities.HeightmapResolution - 1;
 
             foreach (TerrainData terrainData in terrainsData)
             {
@@ -51,18 +51,18 @@
                 tilePositions.Add(posXZ);
             }
 
-            var patchRatio = TerrainSettings.PatchResolution * 1.0f / TerrainSettings.PatchSize;
+            var patchRatio = Utilities.PatchResolution * 1.0f / Utilities.PatchSize;
 
             var tiles = new Dictionary<string, Dictionary<string, Vector2Int>>();
-            var images = Directory.GetFiles(TerrainSettings.ConvertedPath, "*" + TerrainSettings.ImageFormat);
+            var images = Directory.GetFiles(Utilities.ConvertedPath, "*" + Utilities.ImageFormat);
             
             foreach (var image in images)
             {
                 Vector2Int lonLat = image.GetLonLat();
-                var minImageX = lonLat[0] - TerrainSettings.CenterLonLat[0];
-                var maxImageX = minImageX + TerrainSettings.PatchSize - 1;
-                var minImageZ = lonLat[1] - TerrainSettings.CenterLonLat[1];
-                var maxImageZ = minImageZ + TerrainSettings.PatchSize - 1;
+                var minImageX = lonLat[0] - Utilities.CenterLonLat[0];
+                var maxImageX = minImageX + Utilities.PatchSize - 1;
+                var minImageZ = lonLat[1] - Utilities.CenterLonLat[1];
+                var maxImageZ = minImageZ + Utilities.PatchSize - 1;
 
                 var points = new Vector2[] {
                     new Vector2(minImageX, minImageZ),
@@ -90,7 +90,7 @@
 
                     var imagePosition = new Vector2Int();
                     imagePosition[0] = Convert.ToInt32((minImageX - minTileX) * patchRatio);
-                    imagePosition[1] = Convert.ToInt32(TerrainSettings.TileResolution - (maxImageZ + 1 - minTileZ) * patchRatio);
+                    imagePosition[1] = Convert.ToInt32(Utilities.TileResolution - (maxImageZ + 1 - minTileZ) * patchRatio);
 
                     var tileId = tilePosition.GetTileIdFromPosition();
 
@@ -112,7 +112,7 @@
             // Combine images to tiles
             foreach (var tile in tiles)
             {
-                var commandComposite = string.Format("convert -size {0}x{0} canvas:white ", TerrainSettings.TileResolution);
+                var commandComposite = string.Format("convert -size {0}x{0} canvas:white ", Utilities.TileResolution);
 
                 foreach (var image in tile.Value)
                 {
@@ -120,7 +120,7 @@
                         image.Key, image.Value[0] >= 0 ? "+" : "", image.Value[0], image.Value[1] >= 0 ? "+" : "", image.Value[1]);
                 }
 
-                var tileName = Path.Combine(TerrainSettings.CombinedPath, tile.Key + TerrainSettings.ImageFormat);
+                var tileName = Path.Combine(Utilities.CombinedPath, tile.Key + Utilities.ImageFormat);
                 commandComposite += tileName;
 
                 commandComposite.DoMagick(true);
@@ -131,7 +131,7 @@
         private static void ResizeImages()
         {
             var commandResize = string.Format("mogrify -resize {0}x{0} {1}\\*{2}",
-                TerrainSettings.TextureResolution, TerrainSettings.CombinedPath, TerrainSettings.ImageFormat);
+                Utilities.TextureResolution, Utilities.CombinedPath, Utilities.ImageFormat);
 
             commandResize.DoMagick();
         }
@@ -142,11 +142,11 @@
         [MenuItem("Cuku/Terrain/Texture/Saturate Images")]
         static void SaturateImages()
         {
-            var images = Directory.GetFiles(TerrainSettings.CombinedPath, "*" + TerrainSettings.ImageFormat);
+            var images = Directory.GetFiles(Utilities.CombinedPath, "*" + Utilities.ImageFormat);
 
             foreach (var image in images)
             {
-                var modulatedImagePath = Path.Combine(TerrainSettings.SaturatedPath, Path.GetFileName(image));
+                var modulatedImagePath = Path.Combine(Utilities.SaturatedPath, Path.GetFileName(image));
 
                 var commandModulate = string.Format("convert {0} -modulate 100,200 {1}", image, modulatedImagePath);
 

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5ec676cc90269294abe41eb56551ee13, type: 3}
-  m_Name: NewTerrainHeightmapConfig
+  m_Name: TerrainHeightmapConfig
   m_EditorClassIdentifier: 
   serializationData:
     SerializedFormat: 2
@@ -21,9 +21,9 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  TerrainPointsPath: 
+  TerrainPointsPath: C:/Terrain/Points
   PatchSize: 2000
-  TerrainDataPath: 
+  TerrainDataPath: Assets/Content/Resources/TerrainData
   HeightmapResolution: 4097
-  HeightmapsPath: 
-  TilePrefab: {fileID: 0}
+  HeightmapsPath: C:/Terrain/Heightmaps
+  TilePrefab: {fileID: 3300422891118371023, guid: 65320c3d08fac694eb0d457ee63aff47, type: 3}
