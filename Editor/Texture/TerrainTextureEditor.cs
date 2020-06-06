@@ -36,24 +36,24 @@
 
 		#region Actions
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		static void ConvertSatelliteImages()
+		void ConvertSatelliteImages()
 		{
 			// Convert original images
-			var images = Directory.GetFiles(TerrainUtilities.SourcePath, "*" + TerrainUtilities.SourceFormat);
+			var images = Directory.GetFiles(TextureConfig.SourcePath, "*" + TextureConfig.SourceFormat);
 			foreach (var image in images)
 			{
-				var texturePath = Path.Combine(TerrainUtilities.ConvertedPath, Path.GetFileNameWithoutExtension(image) + TerrainUtilities.ImageFormat);
-				var commandConvert = string.Format(@"{0} {1} {2}", TerrainUtilities.ConversionCommand, image, texturePath);
+				var texturePath = Path.Combine(TextureConfig.ConvertedPath, Path.GetFileNameWithoutExtension(image) + TextureConfig.ImageFormat);
+				var commandConvert = string.Format(@"{0} {1} {2}", TextureConfig.ConversionCommand, image, texturePath);
 
 				commandConvert.ExecutePowerShellCommand(true);
 			}
 
 			// Cleanup texture names
-			var textures = Directory.GetFiles(TerrainUtilities.ConvertedPath, "*" + TerrainUtilities.ImageFormat);
+			var textures = Directory.GetFiles(TextureConfig.ConvertedPath, "*" + TextureConfig.ImageFormat);
 			foreach (var texture in textures)
 			{
 				var newName = texture;
-				foreach (var filter in TerrainUtilities.NameFilters)
+				foreach (var filter in TextureConfig.NameFilters)
 				{
 					newName = newName.Replace(filter, string.Empty);
 				}
@@ -62,32 +62,35 @@
 		}
 
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		static void CombineImages()
+		void CombineImages()
 		{
+            var tileResolution = (CommonConfig.HeightmapResolution - 1) * TextureConfig.PatchResolution / TextureConfig.PatchSize;
+            var centerUtm = CommonConfig.CenterUtm.Value;
+
 			// Group textures in tiles as terrain data
 			var tilePositions = new List<Vector2Int>();
-			var terrainsData = Resources.LoadAll<TerrainData>(TerrainUtilities.TerrainDataPath);
+			var terrainsData = Resources.LoadAll<TerrainData>(CommonConfig.TerrainDataFolder());
 
 			var terrainSize = TerrainUtilities.HeightmapResolution - 1;
 
 			foreach (TerrainData terrainData in terrainsData)
 			{
-				Vector2Int posXZ = terrainData.name.GetTilePosition();
+				Vector2Int posXZ = terrainData.name.GetTilePosition(CommonConfig.IdSeparator);
 				tilePositions.Add(posXZ);
 			}
 
-			var patchRatio = TerrainUtilities.PatchResolution * 1.0f / TerrainUtilities.PatchSize;
+			var patchRatio = TextureConfig.PatchResolution * 1.0f / TextureConfig.PatchSize;
 
 			var tiles = new Dictionary<string, Dictionary<string, Vector2Int>>();
-			var images = Directory.GetFiles(TerrainUtilities.ConvertedPath, "*" + TerrainUtilities.ImageFormat);
+			var images = Directory.GetFiles(TextureConfig.ConvertedPath, "*" + TextureConfig.ImageFormat);
 
 			foreach (var image in images)
 			{
 				Vector2Int lonLat = image.GetLonLat();
-				var minImageX = lonLat[0] - TerrainUtilities.CenterLonLat[0];
-				var maxImageX = minImageX + TerrainUtilities.PatchSize - 1;
-				var minImageZ = lonLat[1] - TerrainUtilities.CenterLonLat[1];
-				var maxImageZ = minImageZ + TerrainUtilities.PatchSize - 1;
+				var minImageX = lonLat[0] - centerUtm[0];
+				var maxImageX = minImageX + TextureConfig.PatchSize - 1;
+				var minImageZ = lonLat[1] - centerUtm[1];
+				var maxImageZ = minImageZ + TextureConfig.PatchSize - 1;
 
 				var points = new Vector2[] {
 					new Vector2(minImageX, minImageZ),
@@ -115,9 +118,9 @@
 
 					var imagePosition = new Vector2Int();
 					imagePosition[0] = Convert.ToInt32((minImageX - minTileX) * patchRatio);
-					imagePosition[1] = Convert.ToInt32(TerrainUtilities.TileResolution - (maxImageZ + 1 - minTileZ) * patchRatio);
+					imagePosition[1] = Convert.ToInt32(tileResolution - (maxImageZ + 1 - minTileZ) * patchRatio);
 
-					var tileId = tilePosition.GetTileIdFromPosition();
+					var tileId = tilePosition.GetTileIdFromPosition(CommonConfig.IdSeparator);
 
 					if (!tiles.ContainsKey(tileId))
 					{
@@ -137,7 +140,7 @@
 			// Combine images to tiles
 			foreach (var tile in tiles)
 			{
-				var commandComposite = string.Format("convert -size {0}x{0} canvas:white ", TerrainUtilities.TileResolution);
+				var commandComposite = string.Format("convert -size {0}x{0} canvas:white ", tileResolution);
 
 				foreach (var image in tile.Value)
 				{
@@ -145,7 +148,7 @@
 						image.Key, image.Value[0] >= 0 ? "+" : "", image.Value[0], image.Value[1] >= 0 ? "+" : "", image.Value[1]);
 				}
 
-				var tileName = Path.Combine(TerrainUtilities.CombinedPath, tile.Key + TerrainUtilities.ImageFormat);
+				var tileName = Path.Combine(TextureConfig.CombinedPath, tile.Key + TextureConfig.ImageFormat);
 				commandComposite += tileName;
 
 				commandComposite.DoMagick(true);
@@ -153,32 +156,31 @@
 		}
 
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		private static void ResizeImages()
+		void ResizeImages()
 		{
 			var commandResize = string.Format("mogrify -resize {0}x{0} {1}\\*{2}",
-				TerrainUtilities.TextureResolution, TerrainUtilities.CombinedPath, TerrainUtilities.ImageFormat);
+				TextureConfig.TextureResolution, TextureConfig.CombinedPath, TextureConfig.ImageFormat);
 
 			commandResize.DoMagick();
 		}
 
 		/// <summary>
-		/// Saturate biome mask images to better emphasize colors
+		/// Saturate biome mask images to better emphasize colors.
 		/// </summary>
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		static void SaturateImages()
+		void SaturateImages()
 		{
-			var images = Directory.GetFiles(TerrainUtilities.CombinedPath, "*" + TerrainUtilities.ImageFormat);
+			var images = Directory.GetFiles(TextureConfig.CombinedPath, "*" + TextureConfig.ImageFormat);
 
 			foreach (var image in images)
 			{
-				var modulatedImagePath = Path.Combine(TerrainUtilities.SaturatedPath, Path.GetFileName(image));
+				var modulatedImagePath = Path.Combine(TextureConfig.SaturatedPath, Path.GetFileName(image));
 
 				var commandModulate = string.Format("convert {0} -modulate 100,200 {1}", image, modulatedImagePath);
 
 				commandModulate.DoMagick(true);
 			}
 		}
-
 		#endregion
 	}
 }

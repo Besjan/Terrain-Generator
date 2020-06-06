@@ -2,6 +2,7 @@
 {
 	using Cuku.ScriptableObject;
 	using Sirenix.OdinInspector;
+	using System.IO;
 
 	public class TerrainCommonConfig : SerializedScriptableObject
     {
@@ -10,7 +11,7 @@
 
         [PropertySpace(20), Title("City"), InlineEditor]
         [InfoBox("City Center in Universal Transverse Mercator coordinates.", InfoMessageType.None)]
-        public Vector2IntSO CenterUTM;
+        public Vector2IntSO CenterUtm;
 
         // TODO: use it in MaxTerrainHeight and microsplat world height range
         [PropertySpace, InlineEditor]
@@ -27,5 +28,10 @@
 
 
         private int[] heighmapResolutions = { 33, 65, 129, 257, 513, 1025, 2049, 4097 };
+
+        public string TerrainDataFolder()
+		{
+            return new DirectoryInfo(TerrainDataPath).Name;
+        }
     }
 }

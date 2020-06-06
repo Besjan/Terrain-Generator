@@ -33,9 +33,9 @@
 
 #if __MICROSPLAT__
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		static void ApplyMicroSplatMaterial()
+		public void ApplyMicroSplatMaterial()
 		{
-			var material = Resources.Load<Material>(Path.Combine(TerrainUtilities.TerrainDataPath, TerrainUtilities.MicroSplatDataPath));
+			var material = Resources.Load<Material>(Path.Combine(CommonConfig.TerrainDataFolder(), ShadingConfig.MicroSplatDataPath));
 			var terrains = GameObject.FindObjectsOfType<Terrain>();
 
 			terrains[0].transform.parent.gameObject.SetActive(false);
@@ -53,9 +53,9 @@
 		#region Actions
 #if __MICROSPLAT_GLOBALTEXTURE__
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		static void ApplyTintMap()
+		public void ApplyTintMap()
 		{
-			var textures = Resources.LoadAll<Texture2D>(TerrainUtilities.TintTexturesPath);
+			var textures = Resources.LoadAll<Texture2D>(ShadingConfig.TintTexturesPath);
 			var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();
 
 			msTerrains[0].transform.parent.gameObject.SetActive(false);
@@ -71,9 +71,9 @@
 
 #if __MICROSPLAT_PROCTEX__
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		static void ApplyBiomeMask()
+		public void ApplyBiomeMask()
 		{
-			var textures = Resources.LoadAll<Texture2D>(TerrainUtilities.BiomeMapsPath);
+			var textures = Resources.LoadAll<Texture2D>(ShadingConfig.BiomeMapsPath);
 			var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();
 
 			msTerrains[0].transform.parent.gameObject.SetActive(false);
