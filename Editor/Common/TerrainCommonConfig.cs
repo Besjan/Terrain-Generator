@@ -9,14 +9,16 @@
         [PropertySpace(20), Title("Id"), InfoBox("Used to separate tile names.", InfoMessageType.None)]
         public string IdSeparator = "_";
 
-        [PropertySpace(20), Title("City"), InlineEditor]
+        [PropertySpace(20), Title("City")]
+        public string CityName;
+
+        [PropertySpace, InlineEditor]
         [InfoBox("City Center in Universal Transverse Mercator coordinates.", InfoMessageType.None)]
         public Vector2IntSO CenterUtm;
 
-        // TODO: use it in MaxTerrainHeight and microsplat world height range
         [PropertySpace, InlineEditor]
         [InfoBox("Minimum and maximum terrain heights.", InfoMessageType.None)]
-        public Vector2IntSO TerrainHeightRange;
+        public Vector2SO TerrainHeightRange;
 
 
         [PropertySpace(20), Title("Heightmap"), FolderPath]
@@ -28,6 +30,7 @@
 
 
         private int[] heighmapResolutions = { 33, 65, 129, 257, 513, 1025, 2049, 4097 };
+
 
         public string TerrainDataFolder()
 		{

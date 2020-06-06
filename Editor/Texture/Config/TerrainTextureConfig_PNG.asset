@@ -28,7 +28,7 @@ MonoBehaviour:
   - dop20_
   - dop20rgb_
   - _2_be_2019
-  Magick: C:/Terrain/ImageMagick/magick.exe
+  ImageMagickPath: C:/Terrain/ImageMagick/magick.exe
   SourcePath: C:/Terrain/Textures/Source
   ConvertedPath: C:/Terrain/Textures/Converted
   CombinedPath: C:/Terrain/Textures/Combined

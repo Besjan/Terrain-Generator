@@ -13,7 +13,7 @@
         [InfoBox("Folder path where heightmaps are stored and retrieved from.", InfoMessageType.None)]
         public string HeightmapsPath;
 
-        // TODO: use it
+
         [PropertySpace(20), Title("Terrain Tiles"), AssetsOnly]
         public UnityEngine.GameObject TilePrefab;
 

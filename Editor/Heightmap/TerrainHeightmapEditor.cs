@@ -94,10 +94,19 @@
 		}
 
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		void CreateTiles()
+		void StitchTiles()
 		{
-			var terrain = new GameObject("Terrain", new Type[] { typeof(TerrainGroup) });
-			var tilePrefab = Resources.Load<GameObject>("TerrainTile");
+			NormalizeTilesHeights();
+
+			RoundBorderHeights();
+
+			EvenBorderHeights();
+		}
+
+		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
+		void SetupTerrain()
+		{
+			var terrain = new GameObject(CommonConfig.CityName + " Terrain", new Type[] { typeof(TerrainGroup) });
 
 			var terrainsData = Resources.LoadAll<TerrainData>(CommonConfig.TerrainDataFolder());
 			terrainsData = terrainsData.OrderBy(td => td.name.GetTileXZIdFromName().x)
@@ -108,9 +117,9 @@
 
 			for (int i = 0; i < terrainsData.Length; i++)
 			{
-				Vector2Int posXZ = terrainsData[i].name.GetTilePosition(CommonConfig.IdSeparator);
+				Vector2Int posXZ = terrainsData[i].name.GetTilePosition(CommonConfig.IdSeparator, CommonConfig.HeightmapResolution);
 
-				var tile = GameObject.Instantiate(tilePrefab, terrain.transform);
+				var tile = GameObject.Instantiate(HeightmapConfig.TilePrefab, terrain.transform);
 				tile.name = terrainsData[i].name;
 				tile.transform.position = new Vector3(posXZ[0], 0, posXZ[1]);
 
@@ -119,16 +128,6 @@
 				tileTerrain.terrainData = terrainsData[i];
 				tile.GetComponent<TerrainCollider>().terrainData = terrainsData[i];
 			}
-		}
-
-		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
-		void StitchTiles()
-		{
-			NormalizeTilesHeights();
-
-			RoundBorderHeights();
-
-			EvenBorderHeights();
 		}
 		#endregion
 
@@ -183,9 +182,10 @@
         List<TerrainUtilities.Tile> GetRelatedTilesData(Vector2Int patchUtm)
         {
             var centerUtm = CommonConfig.CenterUtm.Value;
+            var hmResPo2 = CommonConfig.HeightmapResolution - 1;
 
             var tiles = new List<TerrainUtilities.Tile>();
-            Vector2Int tileXZ = patchUtm.GetTileXZIdFromUtm(centerUtm);
+            Vector2Int tileXZ = patchUtm.GetTileXZIdFromUtm(centerUtm, hmResPo2 + 1);
 
             for (int x = tileXZ[0] - 1; x < tileXZ[0] + 2; x++)
             {
@@ -195,10 +195,10 @@
                     var tileId = xz.GetTileIdFromXZ(CommonConfig.IdSeparator);
 
                     var bounds = new int[4];
-                    bounds[0] = centerUtm[0] + x * (TerrainUtilities.HeightmapResolution - 1);
-                    bounds[1] = bounds[0] + (TerrainUtilities.HeightmapResolution - 1);
-                    bounds[2] = centerUtm[1] + z * (TerrainUtilities.HeightmapResolution - 1);
-                    bounds[3] = bounds[2] + (TerrainUtilities.HeightmapResolution - 1);
+                    bounds[0] = centerUtm[0] + x * hmResPo2;
+                    bounds[1] = bounds[0] + hmResPo2;
+                    bounds[2] = centerUtm[1] + z * hmResPo2;
+                    bounds[3] = bounds[2] + hmResPo2;
 
                     // Add new tile if is current or next tile
                     var isNewTile = x - tileXZ[0] >= 0 && z - tileXZ[1] >= 0;
@@ -211,10 +211,12 @@
 
         void AddRelatedTile(List<TerrainUtilities.Tile> tiles, string tileId, int[] bounds, bool canAddNew)
         {
+            var heightmapResolution = CommonConfig.HeightmapResolution;
+
             var terrainData = Resources.Load<TerrainData>(CommonConfig.TerrainDataFolder() + tileId);
             if (terrainData != null)
             {
-                var heights = DenormalizeHeights(terrainData.GetHeights(0, 0, TerrainUtilities.HeightmapResolution, TerrainUtilities.HeightmapResolution), terrainData.size.y);
+                var heights = DenormalizeHeights(terrainData.GetHeights(0, 0, heightmapResolution, heightmapResolution), terrainData.size.y);
                 tiles.Add(new TerrainUtilities.Tile
                 {
                     Id = tileId,
@@ -230,7 +232,7 @@
             tiles.Add(new TerrainUtilities.Tile
             {
                 Id = tileId,
-                Heights = new float[TerrainUtilities.HeightmapResolution, TerrainUtilities.HeightmapResolution],
+                Heights = new float[heightmapResolution, heightmapResolution],
                 Bounds = bounds
             });
             return;
@@ -321,7 +323,7 @@
         #region Stitch Tiles
         void NormalizeTilesHeights()
         {
-            float maxHeight = TerrainUtilities.MaxTerrainHeight;
+            var maxHeight = CommonConfig.TerrainHeightRange.Value[1];
 
             var terrains = GameObject.FindObjectsOfType<Terrain>();
 

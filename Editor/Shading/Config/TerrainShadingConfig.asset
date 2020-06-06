@@ -21,6 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  TintTexturesPath: C:/Projects/BerlinData/Terrain/TerrainTintTextures
-  BiomeMapsPath: C:/Projects/BerlinData/Terrain/TerrainBiomeMaps
-  MicroSplatDataPath: C:/Projects/BerlinHD/Assets/Content/Resources/TerrainData/MicroSplatData
+  MicroSplatMaterial: {fileID: 2100000, guid: 30480f713900a8c4d9306d88ae69e070, type: 2}
+  TintTexturesPath: C:/Projects/BerlinHD/Assets/Content/Resources/TerrainTintTextures
+  BiomeMapsPath: C:/Projects/BerlinHD/Assets/Content/Resources/TerrainBiomeMaps

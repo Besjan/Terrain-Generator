@@ -3,8 +3,8 @@
 	using System;
 	using System.IO;
 	using UnityEngine;
-    using Cuku.Utilities;
 	using MessagePack;
+	using Cuku.Utilities;
 
 	public static class TerrainUtilities
     {
@@ -24,13 +24,6 @@
             [Key(1)]
             public float[,] Heights;
         }
-
-        // Common / City
-
-        // TODO: use it in MaxTerrainHeight and microsplat world height range
-        public const float MaxTerrainHeight = 123f;
-
-        public const int HeightmapResolution = 4097;
         #endregion
 
         public static Vector2Int GetLonLat(this string filePath)
@@ -41,11 +34,11 @@
             return lonLat * 1000;
         }
 
-        public static Vector2Int GetTileXZIdFromUtm(this Vector2Int utm, Vector2Int centerUtm)
+        public static Vector2Int GetTileXZIdFromUtm(this Vector2Int utm, Vector2Int centerUtm, int heightmapResolution)
         {
             var xzId = new Vector2Int(Convert.ToInt32(Math.Floor(1f * (utm[0] - centerUtm[0]))),
                                       Convert.ToInt32(Math.Floor(1f * (utm[1] - centerUtm[1]))));
-            return xzId / HeightmapResolution;
+            return xzId / heightmapResolution;
         }
 
         public static Vector2Int GetTileXZIdFromName(this string name)
@@ -54,15 +47,15 @@
             return new Vector2Int(Convert.ToInt32(xzId[0]), Convert.ToInt32(xzId[1]));
         }
 
-        public static string GetTileIdFromUtm(this Vector2Int utm, Vector2Int centerUtm, string separator)
+        public static string GetTileIdFromUtm(this Vector2Int utm, Vector2Int centerUtm, string separator, int heightmapResolution)
         {
-            Vector2Int xz = utm.GetTileXZIdFromUtm(centerUtm);
+            Vector2Int xz = utm.GetTileXZIdFromUtm(centerUtm, heightmapResolution);
             return GetTileIdFromXZ(xz, separator);
         }
 
-        public static string GetTileIdFromPosition(this Vector2Int position, string separator)
+        public static string GetTileIdFromPosition(this Vector2Int position, string separator, int heightmapResolution)
         {
-            Vector2Int xz = new Vector2Int(position[0], position[1]) / (HeightmapResolution - 1);
+            Vector2Int xz = new Vector2Int(position[0], position[1]) / (heightmapResolution - 1);
             return GetTileIdFromXZ(xz, separator);
         }
 
@@ -71,17 +64,17 @@
             return string.Format("{0}{2}{1}", xz[0], xz[1], separator);
         }
 
-        public static Vector2Int GetTilePosition(this string id, string separator)
+        public static Vector2Int GetTilePosition(this string id, string separator, int heightmapResolution)
         {
-            var idXZ = id.Split(separator.ToCharArray());
-            return new Vector2Int(Convert.ToInt32(idXZ[0]), Convert.ToInt32(idXZ[1])) * (HeightmapResolution - 1);
+            var idXZ = id.Split(new string[] { separator }, StringSplitOptions.None);
+            return new Vector2Int(Convert.ToInt32(idXZ[0]), Convert.ToInt32(idXZ[1])) * (heightmapResolution - 1);
         }
 
-        public static void DoMagick(this string command, bool wait = false)
+        public static void DoMagick(this string imageMagickPath, string command, bool wait = false)
         {
-            //var arguments = string.Format(@"{0} {1}", Magick, command);
+            var arguments = string.Format(@"{0} {1}", imageMagickPath, command);
 
-            //arguments.ExecutePowerShellCommand(wait);
+            arguments.ExecutePowerShellCommand(wait);
         }
     }
 }

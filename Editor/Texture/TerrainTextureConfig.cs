@@ -19,7 +19,7 @@
 
         [PropertySpace(20), Title("Paths"), FilePath(AbsolutePath = true, Extensions = ".exe", RequireExistingPath = true)]
         [InfoBox("Portable ImageMagic executable path.", InfoMessageType.None)]
-        public string Magick;
+        public string ImageMagickPath;
 
         [PropertySpace, FolderPath(AbsolutePath = true, RequireExistingPath = true)]
         public string SourcePath;

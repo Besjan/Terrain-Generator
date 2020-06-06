@@ -71,11 +71,11 @@
 			var tilePositions = new List<Vector2Int>();
 			var terrainsData = Resources.LoadAll<TerrainData>(CommonConfig.TerrainDataFolder());
 
-			var terrainSize = TerrainUtilities.HeightmapResolution - 1;
+			var terrainSize = CommonConfig.HeightmapResolution - 1;
 
 			foreach (TerrainData terrainData in terrainsData)
 			{
-				Vector2Int posXZ = terrainData.name.GetTilePosition(CommonConfig.IdSeparator);
+				Vector2Int posXZ = terrainData.name.GetTilePosition(CommonConfig.IdSeparator, CommonConfig.HeightmapResolution);
 				tilePositions.Add(posXZ);
 			}
 
@@ -120,7 +120,7 @@
 					imagePosition[0] = Convert.ToInt32((minImageX - minTileX) * patchRatio);
 					imagePosition[1] = Convert.ToInt32(tileResolution - (maxImageZ + 1 - minTileZ) * patchRatio);
 
-					var tileId = tilePosition.GetTileIdFromPosition(CommonConfig.IdSeparator);
+					var tileId = tilePosition.GetTileIdFromPosition(CommonConfig.IdSeparator, CommonConfig.HeightmapResolution);
 
 					if (!tiles.ContainsKey(tileId))
 					{
@@ -151,7 +151,7 @@
 				var tileName = Path.Combine(TextureConfig.CombinedPath, tile.Key + TextureConfig.ImageFormat);
 				commandComposite += tileName;
 
-				commandComposite.DoMagick(true);
+				TextureConfig.ImageMagickPath.DoMagick(commandComposite, true);
 			}
 		}
 
@@ -161,7 +161,7 @@
 			var commandResize = string.Format("mogrify -resize {0}x{0} {1}\\*{2}",
 				TextureConfig.TextureResolution, TextureConfig.CombinedPath, TextureConfig.ImageFormat);
 
-			commandResize.DoMagick();
+			TextureConfig.ImageMagickPath.DoMagick(commandResize);
 		}
 
 		/// <summary>
@@ -178,7 +178,7 @@
 
 				var commandModulate = string.Format("convert {0} -modulate 100,200 {1}", image, modulatedImagePath);
 
-				commandModulate.DoMagick(true);
+				TextureConfig.ImageMagickPath.DoMagick(commandModulate, true);
 			}
 		}
 		#endregion

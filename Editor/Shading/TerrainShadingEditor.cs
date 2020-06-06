@@ -2,7 +2,6 @@
 {
     using UnityEngine;
     using UnityEditor;
-    using System.IO;
     using System.Linq;
 	using Sirenix.OdinInspector.Editor;
 	using Sirenix.Utilities.Editor;
@@ -35,7 +34,7 @@
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
 		public void ApplyMicroSplatMaterial()
 		{
-			var material = Resources.Load<Material>(Path.Combine(CommonConfig.TerrainDataFolder(), ShadingConfig.MicroSplatDataPath));
+			var material = ShadingConfig.MicroSplatMaterial;
 			var terrains = GameObject.FindObjectsOfType<Terrain>();
 
 			terrains[0].transform.parent.gameObject.SetActive(false);
@@ -47,6 +46,8 @@
 			}
 
 			terrains[0].transform.parent.gameObject.SetActive(true);
+
+			material.SetVector("_WorldHeightRange", CommonConfig.TerrainHeightRange.Value);
 		}
 #endif
 
@@ -55,7 +56,8 @@
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
 		public void ApplyTintMap()
 		{
-			var textures = Resources.LoadAll<Texture2D>(ShadingConfig.TintTexturesPath);
+			var tintTexturesPath = ShadingConfig.TintTexturesPath.Split(new string[] { "Resources/" }, System.StringSplitOptions.None)[1]; 
+			var textures = Resources.LoadAll<Texture2D>(tintTexturesPath);
 			var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();
 
 			msTerrains[0].transform.parent.gameObject.SetActive(false);
@@ -73,7 +75,8 @@
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
 		public void ApplyBiomeMask()
 		{
-			var textures = Resources.LoadAll<Texture2D>(ShadingConfig.BiomeMapsPath);
+			var biomeMapsPath = ShadingConfig.BiomeMapsPath.Split(new string[] { "Resources/" }, System.StringSplitOptions.None)[1];
+			var textures = Resources.LoadAll<Texture2D>(biomeMapsPath);
 			var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();
 
 			msTerrains[0].transform.parent.gameObject.SetActive(false);

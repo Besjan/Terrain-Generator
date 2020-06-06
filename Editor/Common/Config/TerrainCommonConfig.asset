@@ -22,7 +22,8 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   IdSeparator: _
-  CenterUTM: {fileID: 11400000, guid: a7b9f7530a4ddeb459c1c61febacd4b9, type: 2}
-  TerrainHeightRange: {fileID: 11400000, guid: 070f100b3fa1a18478be9bcb347e229f, type: 2}
+  CityName: Berlin
+  CenterUtm: {fileID: 11400000, guid: a7b9f7530a4ddeb459c1c61febacd4b9, type: 2}
+  TerrainHeightRange: {fileID: 11400000, guid: f57df45b013bf0743bbcde600b1944ce, type: 2}
   TerrainDataPath: Assets/Content/Resources/TerrainData
   HeightmapResolution: 4097
