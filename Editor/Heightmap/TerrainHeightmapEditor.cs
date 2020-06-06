@@ -15,8 +15,6 @@
 
 	public class TerrainHeightmapEditor : OdinEditorWindow
     {
-        string heightmapFormat = ".hm";
-
 		#region Editor
 		[MenuItem("Cuku/Terrain/Heightmap Editor", priority = 1)]
 		private static void OpenWindow()
@@ -54,7 +52,7 @@
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
 		void CreateTerrainDataFromHeightmap()
 		{
-			var files = Directory.GetFiles(HeightmapConfig.HeightmapsPath, "*" + heightmapFormat);
+			var files = Directory.GetFiles(HeightmapConfig.HeightmapsPath, "*" + HeightmapConfig.HeightmapFormat);
 
 			foreach (var file in files)
 			{
@@ -80,8 +78,7 @@
 				var hmResolution = terrainsData[i].heightmapResolution;
 				var heights = terrainsData[i].GetHeights(0, 0, hmResolution, hmResolution);
 
-				var path = Path.Combine(HeightmapConfig.HeightmapsPath,
-					terrainsData[i].name + heightmapFormat);
+				var path = Path.Combine(HeightmapConfig.HeightmapsPath, terrainsData[i].name + HeightmapConfig.HeightmapFormat);
 
 				var heightmap = new TerrainUtilities.Heightmap()
 				{
@@ -134,8 +131,8 @@
 		#region Terrain Data
 		void CreateTilesData(string filePath)
         {
-            Vector2Int patchLonLat = filePath.GetLonLat();
-            List<TerrainUtilities.Tile> tiles = GetRelatedTilesData(patchLonLat);
+            Vector2Int patchUtm = filePath.GetUtm();
+            List<TerrainUtilities.Tile> tiles = GetRelatedTilesData(patchUtm);
 
             // Put all patch points in related tiles
             using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))

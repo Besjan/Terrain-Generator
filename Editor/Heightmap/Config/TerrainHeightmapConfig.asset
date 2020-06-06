@@ -23,5 +23,6 @@ MonoBehaviour:
     SerializationNodes: []
   TerrainPointsPath: C:/Terrain/Points
   HeightmapsPath: C:/Terrain/Heightmaps
+  HeightmapFormat: .hm
   TilePrefab: {fileID: 3300422891118371023, guid: 65320c3d08fac694eb0d457ee63aff47, type: 3}
   TileStitchPrecision: 1000

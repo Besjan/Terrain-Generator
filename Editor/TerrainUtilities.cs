@@ -26,12 +26,12 @@
         }
         #endregion
 
-        public static Vector2Int GetLonLat(this string filePath)
+        public static Vector2Int GetUtm(this string filePath)
         {
             var coordinates = Path.GetFileNameWithoutExtension(filePath).Split(new char[] { '_' });
-            var lonLat = new Vector2Int(Convert.ToInt32(coordinates[0]),
+            var utm = new Vector2Int(Convert.ToInt32(coordinates[0]),
                                         Convert.ToInt32(coordinates[1]));
-            return lonLat * 1000;
+            return utm * 1000;
         }
 
         public static Vector2Int GetTileXZIdFromUtm(this Vector2Int utm, Vector2Int centerUtm, int heightmapResolution)

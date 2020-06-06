@@ -13,6 +13,9 @@
         [InfoBox("Folder path where heightmaps are stored and retrieved from.", InfoMessageType.None)]
         public string HeightmapsPath;
 
+        [PropertySpace, InfoBox("Format used to save and parse heightmap data.")]
+        public string HeightmapFormat;
+
 
         [PropertySpace(20), Title("Terrain Tiles"), Required]
         public UnityEngine.GameObject TilePrefab;

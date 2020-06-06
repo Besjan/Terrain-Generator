@@ -86,7 +86,7 @@
 
 			foreach (var image in images)
 			{
-				Vector2Int lonLat = image.GetLonLat();
+				Vector2Int lonLat = image.GetUtm();
 				var minImageX = lonLat[0] - centerUtm[0];
 				var maxImageX = minImageX + TextureConfig.PatchSize - 1;
 				var minImageZ = lonLat[1] - centerUtm[1];
