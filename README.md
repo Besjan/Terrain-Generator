@@ -1,7 +1,21 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-greed.svg)](LICENSE)
 
 ## Features
-- Generate Unity Terrain from DEM / DGM (1m grid) LiDAR point cloud data.
+- Heightmap:
+    - Generate Unity terrain data from point cloud data.
+    - Create custom Heightmap to support terrain data on different Unity versions.
+    - Stitch terrain tiles.
+    - Setup multiple terrain tiles in one terrain group from available terrain data.
+
+- Texturing:
+    - Convert satellite images from .ecw usind GDAL.
+    - Combine images to match heightmap resolution.
+    - Process images with ImageMagick: resize, saturate...
+    
+- Shading (automate workflow with MicroSplat):
+    - Apply available MicroSplat material to multiple terrain tiles.
+    - Apply tint map textures to MicroSplat Global Texturing module to multiple terrain tiles.
+    - Apply biome mask textures to MicroSplat Procedural Texturing module to multiple terrain tiles.
 
 ----
 
