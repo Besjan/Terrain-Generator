@@ -15,17 +15,17 @@
 	public class TerrainTextureEditor : OdinEditorWindow
 	{
 		#region Editor
-		[MenuItem("Cuku/Terrain/Texture Editor")]
+		[MenuItem("Cuku/Terrain/Texture Editor", priority = 2)]
 		private static void OpenWindow()
 		{
 			var window = GetWindow<TerrainTextureEditor>();
 			window.position = GUIHelper.GetEditorWindowRect().AlignCenter(700, 700);
 		}
 
-		[PropertySpace, InlineEditor]
+		[PropertySpace, InlineEditor, Required]
 		public TerrainTextureConfig TextureConfig;
 
-		[PropertySpace, InlineEditor]
+		[PropertySpace, InlineEditor, Required]
 		public TerrainCommonConfig CommonConfig;
 
 		private bool IsConfigValid()

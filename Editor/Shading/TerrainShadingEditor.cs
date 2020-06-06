@@ -11,17 +11,17 @@
 	public class TerrainShadingEditor : OdinEditorWindow
 	{
 		#region Editor
-		[MenuItem("Cuku/Terrain/Shading Editor")]
+		[MenuItem("Cuku/Terrain/Shading Editor", priority = 3)]
 		private static void OpenWindow()
 		{
 			var window = GetWindow<TerrainShadingEditor>();
 			window.position = GUIHelper.GetEditorWindowRect().AlignCenter(700, 700);
 		}
 
-		[PropertySpace, InlineEditor]
+		[PropertySpace, InlineEditor, Required]
 		public TerrainShadingConfig ShadingConfig;
 
-		[PropertySpace, InlineEditor]
+		[PropertySpace, InlineEditor, Required]
 		public TerrainCommonConfig CommonConfig;
 
 		private bool IsConfigValid()

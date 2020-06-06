@@ -12,16 +12,16 @@
         [PropertySpace(20), Title("City")]
         public string CityName;
 
-        [PropertySpace, InlineEditor]
+        [PropertySpace, InlineEditor, Required]
         [InfoBox("City Center in Universal Transverse Mercator coordinates.", InfoMessageType.None)]
         public Vector2IntSO CenterUtm;
 
-        [PropertySpace, InlineEditor]
+        [PropertySpace, InlineEditor, Required]
         [InfoBox("Minimum and maximum terrain heights.", InfoMessageType.None)]
         public Vector2SO TerrainHeightRange;
 
 
-        [PropertySpace(20), Title("Heightmap"), FolderPath]
+        [PropertySpace(20), Title("Heightmap"), FolderPath(RequireExistingPath = true)]
         [InfoBox("Folder path where terrain data is stored, must be inside Resources folder.", InfoMessageType.None)]
         public string TerrainDataPath;
 

@@ -18,17 +18,17 @@
         string heightmapFormat = ".hm";
 
 		#region Editor
-		[MenuItem("Cuku/Terrain/Heightmap Editor")]
+		[MenuItem("Cuku/Terrain/Heightmap Editor", priority = 1)]
 		private static void OpenWindow()
 		{
 			var window = GetWindow<TerrainHeightmapEditor>();
 			window.position = GUIHelper.GetEditorWindowRect().AlignCenter(700, 700);
 		}
 
-		[PropertySpace, InlineEditor]
+		[PropertySpace, InlineEditor, Required]
 		public TerrainHeightmapConfig HeightmapConfig;
 
-		[PropertySpace, InlineEditor]
+		[PropertySpace, InlineEditor, Required]
 		public TerrainCommonConfig CommonConfig;
 
 		private bool IsConfigValid()

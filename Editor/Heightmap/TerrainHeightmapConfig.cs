@@ -14,7 +14,7 @@
         public string HeightmapsPath;
 
 
-        [PropertySpace(20), Title("Terrain Tiles"), AssetsOnly]
+        [PropertySpace(20), Title("Terrain Tiles"), Required]
         public UnityEngine.GameObject TilePrefab;
 
         [PropertySpace, InfoBox("Values higher than 1000 don't make much difference.", InfoMessageType.None)]

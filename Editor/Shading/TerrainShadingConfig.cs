@@ -4,7 +4,7 @@
 
     public class TerrainShadingConfig : SerializedScriptableObject
     {
-        [PropertySpace, Title("MicroSplat"), AssetsOnly]
+        [PropertySpace, Title("MicroSplat"), AssetsOnly, Required]
         public UnityEngine.Material MicroSplatMaterial;
 
         [PropertySpace(20), Title("Paths"), FolderPath(AbsolutePath = true, RequireExistingPath = true)]
