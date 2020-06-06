@@ -22,8 +22,6 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   TerrainPointsPath: C:/Terrain/Points
-  PatchSize: 2000
-  TerrainDataPath: Assets/Content/Resources/TerrainData
   HeightmapsPath: C:/Terrain/Heightmaps
   TilePrefab: {fileID: 3300422891118371023, guid: 65320c3d08fac694eb0d457ee63aff47, type: 3}
   TileStitchPrecision: 1000

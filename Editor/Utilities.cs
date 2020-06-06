@@ -21,10 +21,6 @@
         public const string TerrainDataPath = "TerrainData/";
 
 
-        public const int PatchSize = 2000;
-
-        public const float MaxTerrainHeight = 123f;
-
         public const float TileStitchPrecision = 1000f;
 
         public static string HeightmapsPath;
@@ -48,6 +44,7 @@
         }
 
         // Texture
+
         public const string SourceFormat = ".ecw";
         public const string ImageFormat = ".tif";
 
@@ -61,6 +58,7 @@
 
         public const int TextureResolution = 16384;
         public const int PatchResolution = 10000;
+        public const int PatchSize = 2000;
 
         public static string Magick;
 
@@ -72,12 +70,14 @@
         public const string BiomeMapsPath = "TerrainBiomeMaps/";
 
         public const string MicroSplatDataPath = "MicroSplatData/MicroSplat";
-
-        // Utilities
-        public const char IdSeparator = '_';
+        
 
         // Common / City
+        public const char IdSeparator = '_';
         public static Vector2Int CenterLonLat = new Vector2Int(392000, 5820000);
+
+        // TODO: use it in MaxTerrainHeight and microsplat world height range
+        public const float MaxTerrainHeight = 123f;
 
         public const int HeightmapResolution = 4097;
         #endregion

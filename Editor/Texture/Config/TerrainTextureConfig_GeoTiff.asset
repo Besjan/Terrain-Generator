@@ -35,3 +35,4 @@ MonoBehaviour:
   SaturatedPath: C:/Terrain/Textures/Saturated
   TextureResolution: 16384
   PatchResolution: 10000
+  PatchSize: 2000
