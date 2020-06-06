@@ -4,14 +4,38 @@
     using UnityEditor;
     using System.IO;
     using System.Linq;
+	using Sirenix.OdinInspector.Editor;
+	using Sirenix.Utilities.Editor;
+	using Sirenix.OdinInspector;
+	using Sirenix.Utilities;
 
-    public static class TerrainShading
-    {
+	public class TerrainShadingEditor : OdinEditorWindow
+	{
+		#region Editor
+		[MenuItem("Cuku/Terrain/Shading Editor")]
+		private static void OpenWindow()
+		{
+			var window = GetWindow<TerrainShadingEditor>();
+			window.position = GUIHelper.GetEditorWindowRect().AlignCenter(700, 700);
+		}
+
+		[PropertySpace, InlineEditor]
+		public TerrainShadingConfig ShadingConfig;
+
+		[PropertySpace, InlineEditor]
+		public TerrainCommonConfig CommonConfig;
+
+		private bool IsConfigValid()
+		{
+			return ShadingConfig != null && CommonConfig != null;
+		}
+		#endregion
+
 #if __MICROSPLAT__
-		[MenuItem("Cuku/Terrain/Shading/Apply MicroSplat Material")]
+		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
 		static void ApplyMicroSplatMaterial()
 		{
-			var material = Resources.Load<Material>(Path.Combine(Utilities.TerrainDataPath, Utilities.MicroSplatDataPath));
+			var material = Resources.Load<Material>(Path.Combine(TerrainUtilities.TerrainDataPath, TerrainUtilities.MicroSplatDataPath));
 			var terrains = GameObject.FindObjectsOfType<Terrain>();
 
 			terrains[0].transform.parent.gameObject.SetActive(false);
@@ -26,11 +50,12 @@
 		}
 #endif
 
+		#region Actions
 #if __MICROSPLAT_GLOBALTEXTURE__
-		[MenuItem("Cuku/Terrain/Shading/Apply Tint Map")]
+		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
 		static void ApplyTintMap()
 		{
-			var textures = Resources.LoadAll<Texture2D>(Utilities.TintTexturesPath);
+			var textures = Resources.LoadAll<Texture2D>(TerrainUtilities.TintTexturesPath);
 			var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();
 
 			msTerrains[0].transform.parent.gameObject.SetActive(false);
@@ -45,10 +70,10 @@
 #endif
 
 #if __MICROSPLAT_PROCTEX__
-		[MenuItem("Cuku/Terrain/Shading/Apply Biome Mask")]
+		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
 		static void ApplyBiomeMask()
 		{
-			var textures = Resources.LoadAll<Texture2D>(Utilities.BiomeMapsPath);
+			var textures = Resources.LoadAll<Texture2D>(TerrainUtilities.BiomeMapsPath);
 			var msTerrains = GameObject.FindObjectsOfType<MicroSplatTerrain>();
 
 			msTerrains[0].transform.parent.gameObject.SetActive(false);
@@ -60,6 +85,7 @@
 
 			msTerrains[0].transform.parent.gameObject.SetActive(true);
 		}
-#endif
+#endif 
+		#endregion
 	}
 }

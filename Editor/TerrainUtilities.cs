@@ -6,7 +6,7 @@
     using Cuku.Utilities;
 	using MessagePack;
 
-	public static class Utilities
+	public static class TerrainUtilities
     {
 		#region Properties
 		// Heightmap
@@ -82,7 +82,7 @@
         public const int HeightmapResolution = 4097;
         #endregion
 
-        static Utilities()
+        static TerrainUtilities()
         {
             var dataPath = Application.dataPath.Replace(@"/", @"\");
             var projectPath = Directory.GetParent(dataPath).ToString();
