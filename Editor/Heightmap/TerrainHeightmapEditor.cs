@@ -103,7 +103,7 @@
 		[ShowIf("IsConfigValid"), PropertySpace(20), Button(ButtonSizes.Large)]
 		void SetupTerrain()
 		{
-			var terrain = new GameObject(CommonConfig.CityName + " Terrain", new Type[] { typeof(TerrainGroup) });
+			var terrain = new GameObject(CommonConfig.CityName.Value + " Terrain", new Type[] { typeof(TerrainGroup) });
 
 			var terrainsData = Resources.LoadAll<TerrainData>(CommonConfig.TerrainDataFolder());
 			terrainsData = terrainsData.OrderBy(td => td.name.GetTileXZIdFromName().x)

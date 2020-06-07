@@ -9,8 +9,8 @@
         [PropertySpace(20), Title("Id"), InfoBox("Used to separate tile names.", InfoMessageType.None)]
         public string IdSeparator = "_";
 
-        [PropertySpace(20), Title("City")]
-        public string CityName;
+        [PropertySpace(20), Title("City"), Required, InlineEditor]
+        public StringSO CityName;
 
         [PropertySpace, InlineEditor, Required]
         [InfoBox("City Center in Universal Transverse Mercator coordinates.", InfoMessageType.None)]
